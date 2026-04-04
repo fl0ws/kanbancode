@@ -42,26 +42,11 @@ To update later, run the installer again — it pulls the latest changes instead
 git clone https://github.com/fl0ws/kanbancode.git
 cd kanbancode
 npm install
-```
-
-## Usage
-
-### Development mode
-
-```bash
-npm run dev
-```
-
-Starts the Express server on port 3001 and the Vite dev server on port 5173. Open http://localhost:5173.
-
-### Production mode
-
-```bash
 npm run build
 npm start
 ```
 
-Builds the React client and serves everything from port 3001. Open http://localhost:3001.
+Open http://localhost:3001 in your browser.
 
 ### First launch
 
@@ -116,9 +101,9 @@ See [CLAUDE.md](CLAUDE.md) for detailed architecture documentation, file map, da
 ## npm Scripts
 
 ```bash
-npm run dev    # Express (3001) + Vite dev server (5173)
-npm run build  # Production build → client/dist/
-npm start      # Production server on port 3001
+npm run build  # Build the client
+npm start      # Start the server on port 3001
+npm run dev    # Development mode (hot reload, for contributors)
 npm run mcp    # Run MCP server standalone
 ```
 
