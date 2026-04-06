@@ -30,6 +30,10 @@ export function useWebSocket() {
         try {
           const data = JSON.parse(evt.data);
           handleEvent(data);
+          // Forward qq events to QuickQuestion component via custom event
+          if (data.event?.startsWith('qq:')) {
+            window.dispatchEvent(new MessageEvent('qq-ws-message', { data: evt.data }));
+          }
         } catch {
           // ignore malformed messages
         }

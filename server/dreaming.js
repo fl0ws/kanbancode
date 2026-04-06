@@ -29,7 +29,9 @@ export class DreamingEngine {
     const task = db.getTask(taskId);
     if (task?.project_id) {
       this.memoryDirtyProjects.add(task.project_id);
-      logger.debug('Project marked dirty for dreaming', { projectId: task.project_id });
+      logger.info('[DREAM] Project marked dirty', { projectId: task.project_id, taskId, allDirty: [...this.memoryDirtyProjects] });
+    } else {
+      logger.info('[DREAM] onTaskCompleted called but no project_id', { taskId });
     }
     this._resetIdleTimer();
   }
@@ -40,14 +42,32 @@ export class DreamingEngine {
   }
 
   _resetIdleTimer() {
-    if (this.idleTimer) clearTimeout(this.idleTimer);
+    if (this.idleTimer) {
+      clearTimeout(this.idleTimer);
+      this.idleTimer = null;
+    }
 
-    // Only start timer if pool is empty and there are dirty projects
-    if (this.workerPool.running.size === 0 && this.memoryDirtyProjects.size > 0 && !this.dreaming) {
+    const poolEmpty = this.workerPool.running.size === 0;
+    const hasDirty = this.memoryDirtyProjects.size > 0;
+
+    logger.info('[DREAM] Idle timer check', {
+      poolEmpty,
+      hasDirty,
+      dreaming: this.dreaming,
+      dirtyProjects: [...this.memoryDirtyProjects],
+      runningTasks: this.workerPool.running.size,
+    });
+
+    if (poolEmpty && hasDirty && !this.dreaming) {
+      logger.info(`[DREAM] Idle timer STARTED — will dream in ${IDLE_TIMEOUT_MS / 1000}s`);
       this.idleTimer = setTimeout(() => {
+        logger.info('[DREAM] Idle timer FIRED — starting dreaming now');
         this._startDreaming();
       }, IDLE_TIMEOUT_MS);
-      logger.debug('Idle timer started', { timeoutMs: IDLE_TIMEOUT_MS, dirtyProjects: [...this.memoryDirtyProjects] });
+    } else {
+      if (!poolEmpty) logger.info('[DREAM] Not starting timer: pool still has running tasks');
+      if (!hasDirty) logger.info('[DREAM] Not starting timer: no dirty projects');
+      if (this.dreaming) logger.info('[DREAM] Not starting timer: already dreaming');
     }
   }
 
@@ -109,20 +129,20 @@ export class DreamingEngine {
         return `### ${f}\n${content}`;
       }).join('\n\n---\n\n');
 
-      const prompt = `You are a memory consolidation agent. Your job is to organize and clean up project memory files.
+      const prompt = `You are a memory consolidation agent. Your working directory is: ${workingDir}
 
 ## Current memory files in .claude-memory/:
 ${memories}
 
-## Your task:
-1. Read all the memory files above
-2. Consolidate them into clean, topic-based files. Merge related information, remove duplicates, and delete stale/outdated entries.
-3. Write the consolidated files to .claude-memory/ (you can delete old task-specific files and create new topic-based ones like "architecture.md", "conventions.md", "api-patterns.md", etc.)
-4. Rebuild the CLAUDE.md file with a "## Project Memory" section that indexes the consolidated files. Each entry should be one line: "- [Topic](.claude-memory/filename.md) — brief description"
-5. IMPORTANT: Preserve any existing non-memory content in CLAUDE.md (anything above or below the "## Project Memory" section). Only update the memory section.
-6. Keep the total memory concise — aim for key insights, not exhaustive documentation. If something is obvious from the code, don't store it.
+## Your task (execute ALL steps):
+1. Read the existing CLAUDE.md file in this directory (use the Read tool). If it doesn't exist, that's fine.
+2. Consolidate the memory files above into clean, topic-based files. Merge related information, remove duplicates.
+3. Use the Write tool to write the consolidated files to .claude-memory/ (create new topic-based ones like "architecture.md", "conventions.md", etc.)
+4. Use the Read tool to read CLAUDE.md, then use the Edit tool (or Write tool if it doesn't exist) to add or update a "## Project Memory" section at the END of CLAUDE.md. Each entry should be one line: "- [Topic](.claude-memory/filename.md) — brief description"
+5. IMPORTANT: Do NOT delete or modify any existing content in CLAUDE.md. ONLY add/update the "## Project Memory" section at the very end.
+6. Keep the total memory concise — key insights only.
 
-Do this now. Do not ask questions.`;
+Execute all steps now. Do not ask questions. Do not skip any steps.`;
 
       const promptFile = join(tmpdir(), `kanban-dream-${projectId}-${Date.now()}.txt`);
       writeFileSync(promptFile, prompt, 'utf-8');
@@ -152,21 +172,50 @@ Do this now. Do not ask questions.`;
       this.process = proc;
 
       proc.stdout.on('data', (data) => {
-        // Parse for completion, but we don't need to stream output
         const lines = data.toString().split('\n');
         for (const line of lines) {
-          const trimmed = line.trim();
+          const trimmed = line.replace(/\r$/, '').trim();
           if (!trimmed) continue;
           try {
             const json = JSON.parse(trimmed);
+            if (json.type === 'assistant' && json.message?.content) {
+              for (const block of json.message.content) {
+                if (block.type === 'tool_use') {
+                  logger.info('Dream tool use', { projectId, tool: block.name, input: JSON.stringify(block.input || {}).slice(0, 100) });
+                }
+                if (block.type === 'text' && block.text) {
+                  logger.debug('Dream text', { projectId, text: block.text.slice(0, 150) });
+                }
+              }
+            }
             if (json.type === 'result') {
-              logger.info('Dream result', { projectId, success: !json.is_error });
+              logger.info('Dream result', { projectId, success: !json.is_error, result: (json.result || '').slice(0, 200) });
             }
           } catch {}
         }
       });
 
-      proc.stderr.on('data', () => {}); // ignore stderr
+      proc.stderr.on('data', (data) => {
+        // Also parse stderr for JSON events
+        const lines = data.toString().split('\n');
+        for (const line of lines) {
+          const trimmed = line.replace(/\r$/, '').trim();
+          if (!trimmed) continue;
+          try {
+            const json = JSON.parse(trimmed);
+            if (json.type === 'assistant' && json.message?.content) {
+              for (const block of json.message.content) {
+                if (block.type === 'tool_use') {
+                  logger.info('Dream tool use (stderr)', { projectId, tool: block.name });
+                }
+              }
+            }
+            if (json.type === 'result') {
+              logger.info('Dream result (stderr)', { projectId, success: !json.is_error });
+            }
+          } catch {}
+        }
+      });
 
       proc.on('exit', (code) => {
         this.process = null;

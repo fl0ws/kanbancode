@@ -5,20 +5,206 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Claude Code Kanban</title>
   <style>
+    :root {
+      /* Backgrounds */
+      --bg-page: #FAFAFA;
+      --bg-surface: #FFFFFF;
+      --bg-input: #F5F5F5;
+      --bg-elevated: #FAFAFA;
+      --bg-hover: #EEEEEE;
+
+      /* Text */
+      --text-primary: #212121;
+      --text-secondary: #424242;
+      --text-tertiary: #757575;
+      --text-muted: #9E9E9E;
+      --text-on-accent: #fff;
+
+      /* Borders */
+      --border: #E0E0E0;
+      --border-light: #EEEEEE;
+
+      /* Shadows */
+      --shadow-xs: 0 1px 2px rgba(0,0,0,0.06);
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.08);
+      --shadow-md: 0 2px 4px rgba(0,0,0,0.1);
+      --shadow-lg: 0 8px 32px rgba(0,0,0,0.18);
+      --shadow-dropdown: 0 8px 24px rgba(0,0,0,0.12);
+      --overlay: rgba(0,0,0,0.32);
+
+      /* Accent: Green */
+      --green: #4CAF50;
+      --green-dark: #43A047;
+      --green-bg: #E8F5E9;
+
+      /* Accent: Purple */
+      --purple: #7C4DFF;
+      --purple-bg: #EDE7F6;
+      --purple-light-bg: #F3E5F5;
+      --purple-border: #CE93D8;
+
+      /* Accent: Blue */
+      --blue: #1976D2;
+      --blue-dark: #1565C0;
+      --blue-bg: #E3F2FD;
+      --blue-border: #BBDEFB;
+      --blue-light: #90CAF9;
+
+      /* Accent: Orange */
+      --orange: #FF9800;
+      --orange-dark: #F57C00;
+      --orange-bg: #FFF3E0;
+
+      /* Accent: Red */
+      --red: #E53935;
+      --red-alpha: #E5393544;
+
+      /* Accent: Yellow */
+      --yellow: #FFC107;
+      --yellow-dark: #F57F17;
+      --yellow-border: #FFE082;
+      --yellow-bg: #FFF8E1;
+      --yellow-light-bg: #FFF9C4;
+
+      /* Scrollbar */
+      --scrollbar-thumb: #BDBDBD;
+      --scrollbar-hover: #9E9E9E;
+
+      /* Misc */
+      --log-dot: #BDBDBD;
+      --card-selected-border: #2d333b;
+    }
+
+    html.dark {
+      /* Backgrounds */
+      --bg-page: #121212;
+      --bg-surface: #1e1e1e;
+      --bg-input: #2a2a2a;
+      --bg-elevated: #252525;
+      --bg-hover: #333333;
+
+      /* Text */
+      --text-primary: #e0e0e0;
+      --text-secondary: #bdbdbd;
+      --text-tertiary: #9e9e9e;
+      --text-muted: #757575;
+      --text-on-accent: #fff;
+
+      /* Borders */
+      --border: #383838;
+      --border-light: #2a2a2a;
+
+      /* Shadows */
+      --shadow-xs: 0 1px 2px rgba(0,0,0,0.2);
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.2);
+      --shadow-md: 0 2px 4px rgba(0,0,0,0.3);
+      --shadow-lg: 0 8px 32px rgba(0,0,0,0.4);
+      --shadow-dropdown: 0 8px 24px rgba(0,0,0,0.3);
+      --overlay: rgba(0,0,0,0.6);
+
+      /* Accent: Green */
+      --green: #4CAF50;
+      --green-dark: #43A047;
+      --green-bg: #1b2e1b;
+
+      /* Accent: Purple */
+      --purple: #9C7CFF;
+      --purple-bg: #2a1f3e;
+      --purple-light-bg: #2e1f3a;
+      --purple-border: #6a3d7a;
+
+      /* Accent: Blue */
+      --blue: #42A5F5;
+      --blue-dark: #1E88E5;
+      --blue-bg: #152535;
+      --blue-border: #1a4a6e;
+      --blue-light: #5c9ed6;
+
+      /* Accent: Orange */
+      --orange: #FFA726;
+      --orange-dark: #FB8C00;
+      --orange-bg: #2e2215;
+
+      /* Accent: Red */
+      --red: #EF5350;
+      --red-alpha: #EF535066;
+
+      /* Accent: Yellow */
+      --yellow: #FFD54F;
+      --yellow-dark: #FBC02D;
+      --yellow-border: #6a5a2a;
+      --yellow-bg: #2e2a15;
+      --yellow-light-bg: #3a3520;
+
+      /* Scrollbar */
+      --scrollbar-thumb: #555;
+      --scrollbar-hover: #777;
+
+      /* Misc */
+      --log-dot: #555;
+      --card-selected-border: #555;
+    }
+
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: #FAFAFA;
-      color: #212121;
+      background: var(--bg-page);
+      color: var(--text-primary);
       overflow: hidden;
       height: 100vh;
     }
     #root { height: 100vh; display: flex; flex-direction: column; }
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+    @keyframes spin { to { transform: rotate(360deg); } }
     ::-webkit-scrollbar { width: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: #BDBDBD; border-radius: 3px; }
-    ::-webkit-scrollbar-thumb:hover { background: #9E9E9E; }
+    ::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-hover); }
+
+    /* Quick Question markdown styles */
+    .qq-markdown { font-size: 13px; line-height: 1.6; color: var(--text-primary); }
+    .qq-markdown p { margin: 0 0 8px; }
+    .qq-markdown p:last-child { margin-bottom: 0; }
+    .qq-markdown h1, .qq-markdown h2, .qq-markdown h3 { margin: 12px 0 6px; font-weight: 600; color: var(--text-primary); }
+    .qq-markdown h1 { font-size: 16px; }
+    .qq-markdown h2 { font-size: 14px; }
+    .qq-markdown h3 { font-size: 13px; }
+    .qq-markdown code {
+      font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+      font-size: 12px;
+      background: var(--bg-elevated);
+      padding: 1px 5px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+    }
+    .qq-markdown pre {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px;
+      overflow-x: auto;
+      margin: 8px 0;
+    }
+    .qq-markdown pre code {
+      background: none;
+      border: none;
+      padding: 0;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    .qq-markdown ul, .qq-markdown ol { margin: 4px 0 8px 16px; }
+    .qq-markdown li { margin: 2px 0; }
+    .qq-markdown strong { font-weight: 600; }
+    .qq-markdown a { color: var(--blue); text-decoration: none; }
+    .qq-markdown blockquote {
+      border-left: 3px solid var(--border);
+      margin: 8px 0;
+      padding: 4px 12px;
+      color: var(--text-tertiary);
+    }
+    .qq-markdown table { border-collapse: collapse; margin: 8px 0; width: 100%; font-size: 12px; }
+    .qq-markdown th, .qq-markdown td { border: 1px solid var(--border); padding: 4px 8px; text-align: left; }
+    .qq-markdown th { background: var(--bg-elevated); font-weight: 600; }
   </style>
 </head>
 <body>

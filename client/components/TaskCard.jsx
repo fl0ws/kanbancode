@@ -14,7 +14,7 @@ export default function TaskCard({ task, color, isDragging = false }) {
     <div
       style={{
         ...styles.card,
-        borderColor: isSelected ? color : '#2d333b',
+        borderColor: isSelected ? color : 'var(--card-selected-border)',
         opacity: isDragging ? 0.5 : 1,
       }}
       onClick={() => setSelectedTask(task.id)}
@@ -42,13 +42,13 @@ export default function TaskCard({ task, color, isDragging = false }) {
 
 const styles = {
   card: {
-    background: '#FFFFFF',
-    border: '1px solid #E0E0E0',
+    background: 'var(--bg-surface)',
+    border: '1px solid var(--border)',
     borderRadius: 8,
     padding: '10px 12px',
     cursor: 'pointer',
     transition: 'border-color 0.15s, box-shadow 0.15s',
-    boxShadow: '0 1px 2px rgba(0,0,0,0.06)',
+    boxShadow: 'var(--shadow-xs)',
   },
   titleRow: {
     display: 'flex',
@@ -64,12 +64,12 @@ const styles = {
   title: {
     fontSize: 13,
     fontWeight: 500,
-    color: '#212121',
+    color: 'var(--text-primary)',
     lineHeight: 1.3,
   },
   desc: {
     fontSize: 12,
-    color: '#757575',
+    color: 'var(--text-tertiary)',
     marginTop: 6,
     lineHeight: 1.4,
   },
@@ -83,20 +83,20 @@ const styles = {
     fontSize: 11,
     padding: '2px 6px',
     borderRadius: 4,
-    background: '#EEEEEE',
-    color: '#757575',
+    background: 'var(--bg-hover)',
+    color: 'var(--text-tertiary)',
   },
   runningTag: {
-    background: '#EDE7F6',
-    color: '#7C4DFF',
+    background: 'var(--purple-bg)',
+    color: 'var(--purple)',
   },
   queuedTag: {
-    background: '#FFF3E0',
-    color: '#F57C00',
+    background: 'var(--orange-bg)',
+    color: 'var(--orange-dark)',
   },
   inputTag: {
-    background: '#FFC107',
-    color: '#212121',
+    background: 'var(--yellow)',
+    color: 'var(--text-primary)',
     fontWeight: 600,
   },
 };

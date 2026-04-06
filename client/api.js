@@ -36,6 +36,15 @@ export const configurePool = (maxConcurrency) => request('/pool/configure', { me
 export const fetchHealth = () => request('/health');
 export const saveSetting = (key, value) => request('/settings', { method: 'POST', body: JSON.stringify({ key, value }) });
 
+// Quick Question
+export const askQuestion = (question, project_id) => request('/qq/ask', { method: 'POST', body: JSON.stringify({ question, project_id }) });
+export const replyQuestion = (message) => request('/qq/reply', { method: 'POST', body: JSON.stringify({ message }) });
+export const stopQuestion = () => request('/qq/stop', { method: 'POST' });
+export const resetQuestion = () => request('/qq/reset', { method: 'POST' });
+
+// Dreaming
+export const triggerDreaming = () => request('/dreaming/trigger', { method: 'POST' });
+
 // Projects
 export const fetchProjects = () => request('/projects');
 export const createProject = (data) => request('/projects', { method: 'POST', body: JSON.stringify(data) });

@@ -9,6 +9,8 @@ import { logger } from './logger.js';
 logger.setLevel(process.env.LOG_LEVEL || 'debug');
 import { WorkerPool } from './worker-pool.js';
 import { DreamingEngine } from './dreaming.js';
+import { QuickQuestionSession } from './quick-question.js';
+import * as db from './db.js';
 import tasksRouter from './routes/tasks.js';
 import healthRouter from './routes/health.js';
 import outputRouter from './routes/output.js';
@@ -63,6 +65,47 @@ app.get('/api/pool/status', (req, res) => {
 // Dreaming status
 app.get('/api/dreaming/status', (req, res) => {
   res.json(dreaming.getStatus());
+});
+
+// Quick question
+const qq = new QuickQuestionSession();
+
+app.post('/api/qq/ask', (req, res) => {
+  const { question, project_id } = req.body;
+  if (!question?.trim()) return res.status(400).json({ error: 'Question is required' });
+  if (!project_id) return res.status(400).json({ error: 'project_id is required' });
+  const result = qq.ask(question.trim(), project_id);
+  if (result.error) return res.status(400).json(result);
+  res.json(result);
+});
+
+app.post('/api/qq/reply', (req, res) => {
+  const { message } = req.body;
+  if (!message?.trim()) return res.status(400).json({ error: 'Message is required' });
+  const result = qq.reply(message.trim());
+  if (result.error) return res.status(400).json(result);
+  res.json(result);
+});
+
+app.post('/api/qq/stop', (req, res) => {
+  qq.stop();
+  res.json({ ok: true });
+});
+
+app.post('/api/qq/reset', (req, res) => {
+  qq.reset();
+  res.json({ ok: true });
+});
+
+// Manual dream trigger
+app.post('/api/dreaming/trigger', (req, res) => {
+  // Mark all projects with a working_dir as dirty so dreaming processes them
+  const projects = db.getProjects();
+  for (const p of projects) {
+    if (p.working_dir) dreaming.memoryDirtyProjects.add(p.id);
+  }
+  dreaming._startDreaming();
+  res.json({ ok: true, message: 'Dreaming triggered' });
 });
 
 // Configure concurrency via pool

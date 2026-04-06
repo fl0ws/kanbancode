@@ -3,18 +3,35 @@ import { logger } from './logger.js';
 import { broadcast } from './ws.js';
 import * as db from './db.js';
 
+function stripMemoryMentions(text) {
+  if (!text) return text;
+  return text
+    .replace(/I(?:'ve| have) (?:also )?(?:saved|stored|written|created|recorded).*?\.claude-memory.*?[.\n]/gi, '')
+    .replace(/I(?:'ll| will) (?:also )?(?:save|store|write|create|record).*?\.claude-memory.*?[.\n]/gi, '')
+    .replace(/(?:I )?(?:saved|stored|wrote|created).*?memory file.*?[.\n]/gi, '')
+    .replace(/(?:Let me |I'll )(?:also )?save (?:this|these|some|the) (?:learnings?|findings?|insights?).*?[.\n]/gi, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 const DEFAULT_SYSTEM_PROMPT = `Do not make any changes until you have 95% confidence in what you need to build. Ask me follow-up questions until you reach that confidence.
 IMPORTANT: When you have questions for the user, you MUST use the AskUserQuestion tool instead of writing questions as plain text. The AskUserQuestion tool renders interactive buttons the user can click. Always provide 2-4 concrete options per question. Example usage: AskUserQuestion with questions array containing question text, header, and options with label and description.
 Use subagents for any exploration or research. If a task needs 3+ files or multi-file analysis, spawn a subagent and return only summarized insights.
-Complete the task described above. When finished, provide a summary of what you did.
+Complete the task described above. When finished, provide a summary of what you did.`;
 
-## Memory
-Before finishing, save key learnings to a memory file. Create the directory .claude-memory/ in the working directory if it doesn't exist, then write a file named .claude-memory/task-{short-description}.md containing:
-- Architectural decisions made and why
-- Non-obvious patterns or gotchas discovered
-- Key file paths and their roles (if not already documented)
-- Conventions established or followed
-Only save things that are NOT obvious from reading the code. Do NOT save task-specific details (what was requested, what you changed) — only reusable knowledge that helps future tasks.`;
+const MEMORY_INSTRUCTION = `
+
+## Memory (MANDATORY)
+You MUST save a memory file before finishing. This is not optional.
+1. Use the Write tool to create .claude-memory/task-{short-description}.md (the Write tool creates parent directories automatically).
+2. Content should cover what you learned about this codebase:
+   - How the relevant parts of the code are structured
+   - Key files you read and what they do
+   - Patterns, conventions, or gotchas you discovered
+   - Architectural decisions and why they exist
+3. Keep it concise (under 50 lines). Focus on what would help a NEW developer working on a different task in this codebase.
+4. Do NOT skip this step. Every task produces learnings.
+5. Do NOT mention the memory saving in your response to the user. Just do it silently.`;
 
 export class WorkerPool {
   constructor() {
@@ -185,8 +202,8 @@ export class WorkerPool {
         db.setConversationId(taskId, sessionId);
       }
 
-      // Save only the final result as a chat message (not the full thinking output)
-      const chatResponse = (finalResult || '').trim();
+      // Save only the final result as a chat message, strip memory mentions
+      const chatResponse = stripMemoryMentions((finalResult || '').trim());
       if (chatResponse) {
         const entry = db.addActivity(taskId, 'claude', chatResponse);
         broadcast('task:activity', { taskId, entry });
@@ -220,9 +237,9 @@ export class WorkerPool {
     if (task.conversation_id) {
       // Resuming with --resume: Claude already has the full prior conversation.
       // Just send the user's reply as the prompt — no boilerplate.
-      const prompt = lastUserMsg
+      const prompt = (lastUserMsg
         ? lastUserMsg.message
-        : 'Continue where you left off.';
+        : 'Continue where you left off.') + MEMORY_INSTRUCTION;
 
       logger.info('Built resume prompt', { taskId: task.id, prompt });
       return prompt;
@@ -234,7 +251,7 @@ export class WorkerPool {
       // User's reply IS the prompt. Task context is secondary.
       const prompt = `${lastUserMsg.message}
 
-(Context: this is a follow-up on task "${task.title}" in ${task.working_dir || 'unset directory'})`;
+(Context: this is a follow-up on task "${task.title}" in ${task.working_dir || 'unset directory'})${MEMORY_INSTRUCTION}`;
 
       logger.info('Built reply prompt', { taskId: task.id, prompt });
       return prompt;
@@ -248,7 +265,7 @@ export class WorkerPool {
 Working directory: ${task.working_dir || 'not set'}
 
 ## Instructions
-${systemPrompt}`;
+${systemPrompt}${MEMORY_INSTRUCTION}`;
 
     logger.info('Built initial prompt', { taskId: task.id, prompt });
     return prompt;

@@ -110,7 +110,7 @@ Complete the task described above. When finished, provide a summary of what you 
           </label>
 
           {message && (
-            <p style={{ ...styles.message, color: message.type === 'error' ? '#E53935' : '#4CAF50' }}>
+            <p style={{ ...styles.message, color: message.type === 'error' ? 'var(--red)' : 'var(--green)' }}>
               {message.text}
             </p>
           )}
@@ -131,14 +131,14 @@ const styles = {
   overlay: {
     position: 'fixed',
     inset: 0,
-    background: 'rgba(0,0,0,0.32)',
+    background: 'var(--overlay)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 100,
   },
   modal: {
-    background: '#FFFFFF',
+    background: 'var(--bg-surface)',
     border: 'none',
     borderRadius: 12,
     padding: 24,
@@ -146,7 +146,7 @@ const styles = {
     maxWidth: '90vw',
     maxHeight: '85vh',
     overflowY: 'auto',
-    boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
+    boxShadow: 'var(--shadow-lg)',
   },
   modalHeader: {
     display: 'flex',
@@ -157,7 +157,7 @@ const styles = {
   heading: {
     fontSize: 16,
     fontWeight: 600,
-    color: '#212121',
+    color: 'var(--text-primary)',
   },
   closeBtn: {
     width: 32,
@@ -165,7 +165,7 @@ const styles = {
     borderRadius: '50%',
     border: 'none',
     background: 'transparent',
-    color: '#757575',
+    color: 'var(--text-tertiary)',
     fontSize: 16,
     cursor: 'pointer',
     display: 'flex',
@@ -176,7 +176,7 @@ const styles = {
   label: {
     display: 'block',
     fontSize: 13,
-    color: '#212121',
+    color: 'var(--text-primary)',
     fontWeight: 500,
     marginBottom: 16,
   },
@@ -186,9 +186,9 @@ const styles = {
     marginTop: 6,
     padding: '8px 10px',
     borderRadius: 6,
-    border: '1px solid #E0E0E0',
-    background: '#F5F5F5',
-    color: '#212121',
+    border: '1px solid var(--border)',
+    background: 'var(--bg-input)',
+    color: 'var(--text-primary)',
     fontSize: 13,
     outline: 'none',
   },
@@ -202,16 +202,16 @@ const styles = {
     display: 'block',
     marginTop: 4,
     fontSize: 12,
-    color: '#9E9E9E',
+    color: 'var(--text-muted)',
     lineHeight: 1.4,
   },
   resetBtn: {
     marginTop: 6,
     padding: '3px 8px',
     borderRadius: 4,
-    border: '1px solid #E0E0E0',
-    background: '#FAFAFA',
-    color: '#757575',
+    border: '1px solid var(--border)',
+    background: 'var(--bg-elevated)',
+    color: 'var(--text-tertiary)',
     fontSize: 11,
     cursor: 'pointer',
   },
@@ -228,15 +228,15 @@ const styles = {
   btn: {
     padding: '6px 14px',
     borderRadius: 6,
-    border: '1px solid #E0E0E0',
-    background: '#FAFAFA',
-    color: '#424242',
+    border: '1px solid var(--border)',
+    background: 'var(--bg-elevated)',
+    color: 'var(--text-secondary)',
     fontSize: 13,
     cursor: 'pointer',
   },
   btnPrimary: {
-    background: '#4CAF50',
-    borderColor: '#43A047',
-    color: '#fff',
+    background: 'var(--green)',
+    borderColor: 'var(--green-dark)',
+    color: 'var(--text-on-accent)',
   },
 };

@@ -52,7 +52,7 @@ export default function Board({ onAddTask }) {
         {activeTask ? (
           <TaskCard
             task={activeTask}
-            color={COLUMNS.find(c => c.id === activeTask.column)?.color || '#8b949e'}
+            color={COLUMNS.find(c => c.id === activeTask.column)?.color || 'var(--text-muted)'}
             isDragging
           />
         ) : null}
