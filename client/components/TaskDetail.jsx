@@ -173,14 +173,14 @@ export default function TaskDetail({ taskId }) {
 
       <div style={styles.quickActions}>
         {NEXT_COLUMN[task.column] && (
-          <button style={styles.actionBtn} onClick={() => handleMove(NEXT_COLUMN[task.column])}>
+          <button style={{ ...styles.actionBtn, ...styles.moveBtn }} onClick={() => handleMove(NEXT_COLUMN[task.column])}>
             Move to {COLUMN_LABELS[NEXT_COLUMN[task.column]]}
           </button>
         )}
         {task.column === 'claude' && (
           <button style={{ ...styles.actionBtn, ...styles.stopBtn }} onClick={handleStop}>Stop</button>
         )}
-        <button style={styles.actionBtn} onClick={handleArchive}>Archive</button>
+        <button style={{ ...styles.actionBtn, ...styles.archiveBtn }} onClick={handleArchive}>Archive</button>
         <button style={{ ...styles.actionBtn, ...styles.deleteBtn }} onClick={handleDelete}>Delete</button>
       </div>
     </div>
@@ -351,12 +351,23 @@ const styles = {
     fontSize: 12,
     cursor: 'pointer',
   },
+  moveBtn: {
+    background: 'var(--green)',
+    borderColor: 'var(--green-dark)',
+    color: 'var(--text-on-accent)',
+  },
   stopBtn: {
     borderColor: 'var(--red)',
     color: 'var(--red)',
   },
+  archiveBtn: {
+    background: 'var(--blue-bg)',
+    borderColor: 'var(--blue-border)',
+    color: 'var(--blue)',
+  },
   deleteBtn: {
-    borderColor: 'var(--red-alpha)',
+    background: 'var(--red-alpha, rgba(248,81,73,0.1))',
+    borderColor: 'var(--red)',
     color: 'var(--red)',
     marginLeft: 'auto',
   },

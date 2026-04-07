@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { marked } from 'marked';
 
 export default function ActivityLog({ activities }) {
   const [tab, setTab] = useState('chat');
@@ -65,7 +66,15 @@ function ChatBubble({ entry }) {
         ...styles.bubble,
         ...(isUser ? styles.userBubble : styles.claudeBubble),
       }}>
-        <p style={styles.messageText}>{entry.message}</p>
+        {isUser ? (
+          <p style={styles.messageText}>{entry.message}</p>
+        ) : (
+          <div
+            className="qq-markdown"
+            style={styles.messageText}
+            dangerouslySetInnerHTML={{ __html: marked.parse(entry.message || '') }}
+          />
+        )}
         <span style={{
           ...styles.timestamp,
           textAlign: isUser ? 'right' : 'left',
