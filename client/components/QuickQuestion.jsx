@@ -3,6 +3,8 @@ import { useStore } from '../store.js';
 import { askQuestion, replyQuestion, stopQuestion, resetQuestion } from '../api.js';
 import { marked } from 'marked';
 
+marked.setOptions({ breaks: false, gfm: true });
+
 const IDLE_PHRASES = [
   'Pondering...',
   'Rummaging through code...',

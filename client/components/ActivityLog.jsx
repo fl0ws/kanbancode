@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { marked } from 'marked';
 
+marked.setOptions({ breaks: false, gfm: true });
+
 export default function ActivityLog({ activities }) {
   const [tab, setTab] = useState('chat');
   const scrollRef = useRef(null);
