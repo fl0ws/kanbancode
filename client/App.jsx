@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useStore } from './store.js';
 import { useWebSocket } from './hooks/useWebSocket.js';
 import { useTheme } from './hooks/useTheme.js';
-import { fetchTasks, fetchPoolStatus, fetchProjects } from './api.js';
+import { fetchTasks, fetchPoolStatus, fetchProjects, archiveTask } from './api.js';
 import Board from './components/Board.jsx';
 import TaskDetail from './components/TaskDetail.jsx';
 import CreateTaskModal from './components/CreateTaskModal.jsx';
@@ -32,12 +32,17 @@ export default function App() {
 
   useWebSocket();
 
-  // Ctrl+Space to toggle Quick Question
+  const clearCardSelection = useStore(s => s.clearCardSelection);
+
+  // Keyboard shortcuts
   useEffect(() => {
     function handleKeyDown(e) {
       if (e.ctrlKey && e.code === 'Space') {
         e.preventDefault();
         setShowQuickQuestion(prev => !prev);
+      }
+      if (e.key === 'Escape') {
+        clearCardSelection();
       }
     }
     window.addEventListener('keydown', handleKeyDown);
@@ -106,7 +111,43 @@ export default function App() {
       {showManageProjects && <ManageProjectsModal onClose={() => setShowManageProjects(false)} />}
       {showQuickQuestion && <QuickQuestion onClose={() => setShowQuickQuestion(false)} />}
       {showConcurrencyPrompt && <ConcurrencyPrompt />}
+      <MultiSelectBar />
     </>
+  );
+}
+
+function MultiSelectBar() {
+  const selectedCardIds = useStore(s => s.selectedCardIds);
+  const clearCardSelection = useStore(s => s.clearCardSelection);
+  const count = selectedCardIds.size;
+
+  if (count === 0) return null;
+
+  async function handleArchive() {
+    const ids = [...selectedCardIds];
+    for (const id of ids) {
+      try { await archiveTask(id); } catch {}
+    }
+    clearCardSelection();
+  }
+
+  async function handleDelete() {
+    if (!confirm(`Permanently delete ${count} task${count > 1 ? 's' : ''}?`)) return;
+    const { deleteTask } = await import('./api.js');
+    const ids = [...selectedCardIds];
+    for (const id of ids) {
+      try { await deleteTask(id); } catch {}
+    }
+    clearCardSelection();
+  }
+
+  return (
+    <div style={styles.multiBar}>
+      <span style={styles.multiBarText}>{count} task{count > 1 ? 's' : ''} selected</span>
+      <button style={styles.multiBarBtn} onClick={handleArchive}>Archive</button>
+      <button style={{ ...styles.multiBarBtn, ...styles.multiBarDeleteBtn }} onClick={handleDelete}>Delete</button>
+      <button style={styles.multiBarCancelBtn} onClick={clearCardSelection}>Cancel</button>
+    </div>
   );
 }
 
@@ -403,5 +444,49 @@ const styles = {
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
+  },
+  multiBar: {
+    position: 'fixed',
+    bottom: 24,
+    left: '50%',
+    transform: 'translateX(-50%)',
+    display: 'flex',
+    alignItems: 'center',
+    gap: 10,
+    padding: '10px 20px',
+    borderRadius: 12,
+    background: 'var(--bg-surface)',
+    border: '1px solid var(--border)',
+    boxShadow: 'var(--shadow-lg, 0 8px 32px rgba(0,0,0,0.2))',
+    zIndex: 50,
+  },
+  multiBarText: {
+    fontSize: 13,
+    fontWeight: 500,
+    color: 'var(--text-primary)',
+  },
+  multiBarBtn: {
+    padding: '6px 14px',
+    borderRadius: 6,
+    border: '1px solid var(--blue-border)',
+    background: 'var(--blue-bg)',
+    color: 'var(--blue)',
+    fontSize: 13,
+    fontWeight: 500,
+    cursor: 'pointer',
+  },
+  multiBarDeleteBtn: {
+    background: 'var(--red-alpha, rgba(248,81,73,0.1))',
+    borderColor: 'var(--red)',
+    color: 'var(--red)',
+  },
+  multiBarCancelBtn: {
+    padding: '6px 14px',
+    borderRadius: 6,
+    border: '1px solid var(--border)',
+    background: 'var(--bg-elevated)',
+    color: 'var(--text-muted)',
+    fontSize: 13,
+    cursor: 'pointer',
   },
 };

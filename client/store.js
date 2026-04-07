@@ -24,6 +24,7 @@ export const useStore = create((set, get) => ({
   tasks: {},
   columns: { not_started: [], claude: [], your_turn: [], done: [] },
   selectedTaskId: null,
+  selectedCardIds: new Set(),
   liveOutput: {},
   pendingQuestions: {}, // taskId -> questions array
   poolStatus: { running: [], queued: [], maxConcurrency: null },
@@ -170,7 +171,20 @@ export const useStore = create((set, get) => ({
   },
 
   setSelectedTask(id) {
-    set({ selectedTaskId: id });
+    set({ selectedTaskId: id, selectedCardIds: new Set() });
+  },
+
+  toggleCardSelection(id) {
+    set(state => {
+      const next = new Set(state.selectedCardIds);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return { selectedCardIds: next };
+    });
+  },
+
+  clearCardSelection() {
+    set({ selectedCardIds: new Set() });
   },
 
   setPoolStatus(status) {

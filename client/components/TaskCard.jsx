@@ -3,22 +3,34 @@ import { useStore } from '../store.js';
 
 export default function TaskCard({ task, color, isDragging = false }) {
   const setSelectedTask = useStore(s => s.setSelectedTask);
+  const toggleCardSelection = useStore(s => s.toggleCardSelection);
   const selectedTaskId = useStore(s => s.selectedTaskId);
+  const selectedCardIds = useStore(s => s.selectedCardIds);
   const poolStatus = useStore(s => s.poolStatus);
 
   const isSelected = selectedTaskId === task.id;
+  const isMultiSelected = selectedCardIds.has(task.id);
   const isRunning = poolStatus.running?.includes(task.id);
   const isQueued = poolStatus.queued?.includes(task.id);
+
+  function handleClick(e) {
+    if (e.ctrlKey || e.metaKey) {
+      e.stopPropagation();
+      toggleCardSelection(task.id);
+    } else {
+      setSelectedTask(task.id);
+    }
+  }
 
   return (
     <div
       style={{
         ...styles.card,
-        background: color + '12',
-        borderColor: isSelected ? color : color + '30',
+        background: isMultiSelected ? color + '25' : color + '12',
+        borderColor: isMultiSelected ? color : (isSelected ? color : color + '30'),
         opacity: isDragging ? 0.5 : 1,
       }}
-      onClick={() => setSelectedTask(task.id)}
+      onClick={handleClick}
     >
       <div style={styles.titleRow}>
         <span style={{ ...styles.dot, background: color }} />
