@@ -1,10 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useStore } from '../store.js';
 import { fetchOutput, moveTask, stopTask, updateTask, logActivity, archiveTask, deleteTask } from '../api.js';
-import LiveOutput from './LiveOutput.jsx';
 import ActivityLog from './ActivityLog.jsx';
 import NeedsInputBanner from './NeedsInputBanner.jsx';
-import QuestionPanel from './QuestionPanel.jsx';
 
 const COLUMN_LABELS = {
   not_started: 'Not Started',
@@ -64,6 +62,7 @@ export default function TaskDetail({ taskId }) {
   async function handleMove(column) {
     try {
       await moveTask(taskId, column);
+      if (column === 'done') setSelectedTask(null);
     } catch (err) {
       alert(err.message);
     }
@@ -93,7 +92,8 @@ export default function TaskDetail({ taskId }) {
   }
 
   return (
-    <div style={styles.panel}>
+    <div style={styles.overlay} onClick={() => setSelectedTask(null)}>
+    <div style={styles.panel} onClick={e => e.stopPropagation()}>
       <div style={styles.panelHeader}>
         <div style={styles.colIndicator}>
           <span style={{ ...styles.dot, background: color }} />
@@ -102,7 +102,7 @@ export default function TaskDetail({ taskId }) {
         <button style={styles.closeBtn} onClick={() => setSelectedTask(null)}>x</button>
       </div>
 
-      <div style={styles.scrollArea}>
+      <div style={styles.topSection}>
         {editing ? (
           <div style={styles.editForm}>
             <input style={styles.editInput} value={editTitle} onChange={e => setEditTitle(e.target.value)} />
@@ -114,7 +114,13 @@ export default function TaskDetail({ taskId }) {
           </div>
         ) : (
           <div style={styles.taskInfo} onClick={startEdit}>
-            <h3 style={styles.taskTitle}>{task.title}</h3>
+            <div style={styles.titleRow}>
+              <h3 style={styles.taskTitle}>{task.title}</h3>
+              <svg style={styles.editIcon} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+                <path d="m15 5 4 4" />
+              </svg>
+            </div>
             {task.description && <p style={styles.taskDesc}>{task.description}</p>}
           </div>
         )}
@@ -133,17 +139,15 @@ export default function TaskDetail({ taskId }) {
         )}
 
         {task.needs_input === 1 && !pendingQuestions && <NeedsInputBanner task={task} onStop={handleStop} />}
-
-        {(isRunning || liveOutput) && (
-          <LiveOutput output={liveOutput} isRunning={isRunning} />
-        )}
-
-        {pendingQuestions && (
-          <QuestionPanel taskId={taskId} questions={pendingQuestions} />
-        )}
-
-        <ActivityLog activities={task.activity_log || []} />
       </div>
+
+      <ActivityLog
+        activities={task.activity_log || []}
+        liveOutput={liveOutput}
+        isRunning={isRunning}
+        pendingQuestions={pendingQuestions}
+        taskId={taskId}
+      />
 
       {task.column === 'your_turn' && (
         <form onSubmit={handleReply} style={styles.replyForm}>
@@ -184,18 +188,30 @@ export default function TaskDetail({ taskId }) {
         <button style={{ ...styles.actionBtn, ...styles.deleteBtn }} onClick={handleDelete}>Delete</button>
       </div>
     </div>
+    </div>
   );
 }
 
 const styles = {
+  overlay: {
+    position: 'fixed',
+    inset: 0,
+    background: 'rgba(0,0,0,0.4)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 100,
+  },
   panel: {
-    width: 460,
-    flexShrink: 0,
-    borderLeft: '1px solid var(--border)',
+    width: 800,
+    maxWidth: '90vw',
+    height: '85vh',
     background: 'var(--bg-surface)',
+    borderRadius: 12,
+    boxShadow: 'var(--shadow-lg, 0 16px 48px rgba(0,0,0,0.2))',
     display: 'flex',
     flexDirection: 'column',
-    height: '100%',
+    overflow: 'hidden',
   },
   panelHeader: {
     display: 'flex',
@@ -227,17 +243,24 @@ const styles = {
     cursor: 'pointer',
     padding: '4px 8px',
   },
-  scrollArea: {
-    flex: 1,
-    overflowY: 'auto',
-    padding: 16,
-    display: 'flex',
-    flexDirection: 'column',
-    minHeight: 0,
+  topSection: {
+    padding: '12px 16px',
+    borderBottom: '1px solid var(--border)',
+    flexShrink: 0,
   },
   taskInfo: {
     cursor: 'pointer',
     marginBottom: 12,
+  },
+  titleRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+  },
+  editIcon: {
+    color: 'var(--text-muted)',
+    flexShrink: 0,
+    opacity: 0.6,
   },
   taskTitle: {
     fontSize: 16,

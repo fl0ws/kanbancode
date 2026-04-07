@@ -1,6 +1,6 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useStore } from '../store.js';
-import { askQuestion, replyQuestion, stopQuestion, resetQuestion } from '../api.js';
+import { askQuestion, replyQuestion, stopQuestion, resetQuestion, listQuestions, loadQuestion, getQuestion, deleteQuestion, qqStatus } from '../api.js';
 import { marked } from 'marked';
 
 marked.setOptions({ breaks: false, gfm: true });
@@ -21,15 +21,37 @@ export default function QuickQuestion({ onClose }) {
   const projects = useStore(s => s.projects);
   const activeProject = projects.find(p => p.id === activeProjectId);
 
+  const [history, setHistory] = useState([]);
+  const [activeQId, setActiveQId] = useState(null);
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [status, setStatus] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
-  const [hasConversation, setHasConversation] = useState(false);
   const scrollRef = useRef(null);
   const inputRef = useRef(null);
   const idlePhraseRef = useRef(0);
   const idleTimerRef = useRef(null);
+
+  // Load history and check for active process on mount
+  useEffect(() => {
+    if (activeProjectId) {
+      listQuestions(activeProjectId).then(setHistory).catch(() => {});
+
+      // Check if a question is still being processed
+      qqStatus().then(status => {
+        if (status.active && status.questionId) {
+          setIsProcessing(true);
+          setActiveQId(status.questionId);
+          // Load the question's existing messages
+          getQuestion(status.questionId).then(q => {
+            if (q?.messages) {
+              setMessages(q.messages.map(m => ({ role: m.role, text: m.text })));
+            }
+          }).catch(() => {});
+        }
+      }).catch(() => {});
+    }
+  }, [activeProjectId]);
 
   // Rotate idle phrases while processing
   useEffect(() => {
@@ -38,13 +60,7 @@ export default function QuickQuestion({ onClose }) {
       setStatus(IDLE_PHRASES[0]);
       idleTimerRef.current = setInterval(() => {
         idlePhraseRef.current = (idlePhraseRef.current + 1) % IDLE_PHRASES.length;
-        setStatus(prev => {
-          // Only rotate if it's an idle phrase (not a real status from server)
-          if (IDLE_PHRASES.includes(prev)) {
-            return IDLE_PHRASES[idlePhraseRef.current];
-          }
-          return prev;
-        });
+        setStatus(prev => IDLE_PHRASES.includes(prev) ? IDLE_PHRASES[idlePhraseRef.current] : prev);
       }, 3000);
       return () => clearInterval(idleTimerRef.current);
     } else {
@@ -53,14 +69,13 @@ export default function QuickQuestion({ onClose }) {
     }
   }, [isProcessing]);
 
-  // Listen for WebSocket events
+  // WebSocket events
   useEffect(() => {
     function handleWs(evt) {
       try {
         const data = JSON.parse(evt.data);
         if (data.event === 'qq:status') {
           setStatus(data.status);
-          // Reset idle rotation timer so the real status shows for a bit
           if (idleTimerRef.current) {
             clearInterval(idleTimerRef.current);
             idleTimerRef.current = setInterval(() => {
@@ -71,10 +86,12 @@ export default function QuickQuestion({ onClose }) {
         }
         if (data.event === 'qq:finished') {
           setIsProcessing(false);
-          setHasConversation(true);
+          if (data.questionId) setActiveQId(data.questionId);
           if (data.result) {
             setMessages(prev => [...prev, { role: 'assistant', text: data.result }]);
           }
+          // Refresh history
+          if (activeProjectId) listQuestions(activeProjectId).then(setHistory).catch(() => {});
           setTimeout(() => inputRef.current?.focus(), 50);
         }
         if (data.event === 'qq:error') {
@@ -83,10 +100,9 @@ export default function QuickQuestion({ onClose }) {
         }
       } catch {}
     }
-
     window.addEventListener('qq-ws-message', handleWs);
     return () => window.removeEventListener('qq-ws-message', handleWs);
-  }, []);
+  }, [activeProjectId]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -104,10 +120,11 @@ export default function QuickQuestion({ onClose }) {
     setIsProcessing(true);
 
     try {
-      if (hasConversation) {
+      if (activeQId) {
         await replyQuestion(question);
       } else {
-        await askQuestion(question, activeProjectId);
+        const result = await askQuestion(question, activeProjectId);
+        if (result.questionId) setActiveQId(result.questionId);
       }
     } catch (err) {
       setIsProcessing(false);
@@ -123,9 +140,37 @@ export default function QuickQuestion({ onClose }) {
   async function handleNewConversation() {
     await resetQuestion();
     setMessages([]);
-    setHasConversation(false);
+    setActiveQId(null);
     setIsProcessing(false);
     inputRef.current?.focus();
+  }
+
+  async function handleLoadQuestion(id) {
+    if (isProcessing) return;
+    try {
+      await resetQuestion();
+      const result = await loadQuestion(id);
+      if (result.question) {
+        setActiveQId(id);
+        setMessages((result.question.messages || []).map(m => ({
+          role: m.role,
+          text: m.text,
+        })));
+      }
+    } catch (err) {
+      setMessages(prev => [...prev, { role: 'error', text: err.message }]);
+    }
+  }
+
+  async function handleDeleteQuestion(e, id) {
+    e.stopPropagation();
+    await deleteQuestion(id);
+    setHistory(prev => prev.filter(q => q.id !== id));
+    if (activeQId === id) {
+      setActiveQId(null);
+      setMessages([]);
+      await resetQuestion();
+    }
   }
 
   function handleKeyDown(e) {
@@ -135,90 +180,118 @@ export default function QuickQuestion({ onClose }) {
   return (
     <div style={styles.overlay} onKeyDown={handleKeyDown}>
       <div style={styles.modal}>
-        <div style={styles.header}>
-          <div style={styles.headerLeft}>
-            <span style={styles.headerIcon}>?</span>
-            <span style={styles.headerTitle}>Quick Question</span>
-            {activeProject && (
-              <span style={styles.headerProject}>{activeProject.name}</span>
-            )}
+        {/* Sidebar */}
+        <div style={styles.sidebar}>
+          <div style={styles.sidebarHeader}>
+            <span style={styles.sidebarTitle}>History</span>
+            <button style={styles.newBtn} onClick={handleNewConversation} title="New question">+</button>
           </div>
-          <div style={styles.headerRight}>
-            {hasConversation && (
-              <button style={styles.newBtn} onClick={handleNewConversation}>New</button>
+          <div style={styles.sidebarList}>
+            {history.length === 0 && (
+              <div style={styles.sidebarEmpty}>No questions yet</div>
             )}
-            <button style={styles.closeBtn} onClick={onClose}>x</button>
+            {history.map(q => (
+              <div
+                key={q.id}
+                style={{
+                  ...styles.sidebarItem,
+                  ...(q.id === activeQId ? styles.sidebarItemActive : {}),
+                }}
+                onClick={() => handleLoadQuestion(q.id)}
+              >
+                <span style={styles.sidebarItemTitle}>{q.title}</span>
+                <button
+                  style={styles.sidebarDeleteBtn}
+                  onClick={(e) => handleDeleteQuestion(e, q.id)}
+                  title="Delete"
+                >x</button>
+              </div>
+            ))}
           </div>
         </div>
 
-        <div ref={scrollRef} style={styles.chatArea}>
-          {messages.length === 0 && !isProcessing && (
-            <div style={styles.placeholder}>
-              Ask anything about the codebase.
-              <br />Claude will search and read files to answer.
-              <br /><br />
-              <span style={styles.shortcut}>Ctrl+Space</span> to toggle
-            </div>
-          )}
-
-          {messages.map((msg, i) => (
-            <div key={i} style={{
-              ...styles.messageRow,
-              justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start',
-            }}>
-              {msg.role === 'assistant' && <div style={styles.assistantAvatar}>🤖</div>}
-              {msg.role === 'error' && <div style={styles.errorAvatar}>!</div>}
-              {msg.role === 'assistant' ? (
-                <div
-                  style={{ ...styles.bubble, ...styles.assistantBubble }}
-                  className="qq-markdown"
-                  dangerouslySetInnerHTML={{ __html: marked.parse(msg.text || '') }}
-                />
-              ) : (
-                <div style={{
-                  ...styles.bubble,
-                  ...(msg.role === 'user' ? styles.userBubble : {}),
-                  ...(msg.role === 'error' ? styles.errorBubble : {}),
-                }}>
-                  {msg.text}
-                </div>
+        {/* Chat area */}
+        <div style={styles.main}>
+          <div style={styles.header}>
+            <div style={styles.headerLeft}>
+              <span style={styles.headerIcon}>?</span>
+              <span style={styles.headerTitle}>Quick Question</span>
+              {activeProject && (
+                <span style={styles.headerProject}>{activeProject.name}</span>
               )}
             </div>
-          ))}
+            <button style={styles.closeBtn} onClick={onClose}>x</button>
+          </div>
 
-          {isProcessing && (
-            <div style={styles.statusRow}>
-              <div style={styles.statusBubble}>
-                <span style={styles.spinner} />
-                <span style={styles.statusText}>{status}</span>
+          <div ref={scrollRef} style={styles.chatArea}>
+            {messages.length === 0 && !isProcessing && (
+              <div style={styles.placeholder}>
+                Ask anything about the codebase.
+                <br />Claude will search and read files to answer.
+                <br /><br />
+                <span style={styles.shortcut}>Ctrl+Space</span> to toggle
               </div>
-            </div>
-          )}
-        </div>
+            )}
 
-        <form onSubmit={handleSubmit} style={styles.inputArea}>
-          <div style={styles.inputRow}>
-            <input
-              ref={inputRef}
-              style={styles.input}
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              placeholder={hasConversation ? 'Ask a follow-up...' : 'Ask a question about the codebase...'}
-              autoFocus
-              disabled={isProcessing}
-            />
-            {isProcessing ? (
-              <button type="button" style={styles.stopBtn} onClick={handleStop}>Stop</button>
-            ) : (
-              <button type="submit" style={styles.sendBtn} disabled={!input.trim()}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="22" y1="2" x2="11" y2="13" />
-                  <polygon points="22 2 15 22 11 13 2 9 22 2" />
-                </svg>
-              </button>
+            {messages.map((msg, i) => (
+              <div key={i} style={{
+                ...styles.messageRow,
+                justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start',
+              }}>
+                {msg.role === 'assistant' && <div style={styles.assistantAvatar}>🤖</div>}
+                {msg.role === 'error' && <div style={styles.errorAvatar}>!</div>}
+                {msg.role === 'assistant' ? (
+                  <div
+                    style={{ ...styles.bubble, ...styles.assistantBubble }}
+                    className="qq-markdown"
+                    dangerouslySetInnerHTML={{ __html: marked.parse(msg.text || '') }}
+                  />
+                ) : (
+                  <div style={{
+                    ...styles.bubble,
+                    ...(msg.role === 'user' ? styles.userBubble : {}),
+                    ...(msg.role === 'error' ? styles.errorBubble : {}),
+                  }}>
+                    {msg.text}
+                  </div>
+                )}
+              </div>
+            ))}
+
+            {isProcessing && (
+              <div style={styles.statusRow}>
+                <div style={styles.statusBubble}>
+                  <span style={styles.spinner} />
+                  <span style={styles.statusText}>{status}</span>
+                </div>
+              </div>
             )}
           </div>
-        </form>
+
+          <form onSubmit={handleSubmit} style={styles.inputArea}>
+            <div style={styles.inputRow}>
+              <input
+                ref={inputRef}
+                style={styles.input}
+                value={input}
+                onChange={e => setInput(e.target.value)}
+                placeholder={activeQId ? 'Ask a follow-up...' : 'Ask a question about the codebase...'}
+                autoFocus
+                disabled={isProcessing}
+              />
+              {isProcessing ? (
+                <button type="button" style={styles.stopBtn} onClick={handleStop}>Stop</button>
+              ) : (
+                <button type="submit" style={styles.sendBtn} disabled={!input.trim()}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="22" y1="2" x2="11" y2="13" />
+                    <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                  </svg>
+                </button>
+              )}
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );
@@ -235,16 +308,103 @@ const styles = {
     zIndex: 200,
   },
   modal: {
+    display: 'flex',
     background: 'var(--bg-surface)',
     borderRadius: 16,
-    width: 600,
-    maxWidth: '90vw',
-    height: 500,
+    width: 800,
+    maxWidth: '92vw',
+    height: 520,
     maxHeight: '80vh',
-    display: 'flex',
-    flexDirection: 'column',
     boxShadow: 'var(--shadow-lg, 0 16px 48px rgba(0,0,0,0.2))',
     overflow: 'hidden',
+  },
+
+  // Sidebar
+  sidebar: {
+    width: 200,
+    flexShrink: 0,
+    borderRight: '1px solid var(--border)',
+    display: 'flex',
+    flexDirection: 'column',
+    background: 'var(--bg-elevated)',
+  },
+  sidebarHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: '10px 12px',
+    borderBottom: '1px solid var(--border)',
+    flexShrink: 0,
+  },
+  sidebarTitle: {
+    fontSize: 12,
+    fontWeight: 600,
+    color: 'var(--text-muted)',
+    textTransform: 'uppercase',
+    letterSpacing: '0.04em',
+  },
+  newBtn: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    border: '1px solid var(--border)',
+    background: 'var(--bg-surface)',
+    color: 'var(--text-secondary)',
+    fontSize: 14,
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    lineHeight: 1,
+  },
+  sidebarList: {
+    flex: 1,
+    overflowY: 'auto',
+  },
+  sidebarEmpty: {
+    padding: 16,
+    fontSize: 12,
+    color: 'var(--text-muted)',
+    textAlign: 'center',
+  },
+  sidebarItem: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 4,
+    padding: '8px 12px',
+    cursor: 'pointer',
+    borderBottom: '1px solid var(--border)',
+    transition: 'background 0.1s',
+  },
+  sidebarItemActive: {
+    background: 'var(--blue-bg)',
+  },
+  sidebarItemTitle: {
+    flex: 1,
+    fontSize: 12,
+    color: 'var(--text-secondary)',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  },
+  sidebarDeleteBtn: {
+    background: 'none',
+    border: 'none',
+    color: 'var(--text-muted)',
+    fontSize: 11,
+    cursor: 'pointer',
+    padding: '2px 4px',
+    borderRadius: 3,
+    flexShrink: 0,
+    opacity: 0.5,
+  },
+
+  // Main chat area
+  main: {
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
+    minWidth: 0,
   },
   header: {
     display: 'flex',
@@ -252,6 +412,7 @@ const styles = {
     justifyContent: 'space-between',
     padding: '12px 16px',
     borderBottom: '1px solid var(--border)',
+    flexShrink: 0,
   },
   headerLeft: {
     display: 'flex',
@@ -281,20 +442,6 @@ const styles = {
     background: 'var(--bg-input)',
     padding: '2px 8px',
     borderRadius: 4,
-  },
-  headerRight: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 6,
-  },
-  newBtn: {
-    padding: '4px 10px',
-    borderRadius: 6,
-    border: '1px solid var(--border)',
-    background: 'var(--bg-elevated)',
-    color: 'var(--text-secondary)',
-    fontSize: 12,
-    cursor: 'pointer',
   },
   closeBtn: {
     background: 'none',
@@ -367,6 +514,7 @@ const styles = {
     whiteSpace: 'pre-wrap',
     wordBreak: 'break-word',
     color: 'var(--text-primary)',
+    boxShadow: '0 2px 6px rgba(0,0,0,0.16), 0 1px 3px rgba(0,0,0,0.12)',
   },
   userBubble: {
     background: 'var(--blue)',
@@ -396,6 +544,7 @@ const styles = {
     borderRadius: 14,
     borderBottomLeftRadius: 4,
     background: 'var(--bg-input)',
+    boxShadow: '0 2px 6px rgba(0,0,0,0.16), 0 1px 3px rgba(0,0,0,0.12)',
   },
   spinner: {
     width: 16,
@@ -414,6 +563,7 @@ const styles = {
   inputArea: {
     padding: '10px 16px',
     borderTop: '1px solid var(--border)',
+    flexShrink: 0,
   },
   inputRow: {
     display: 'flex',

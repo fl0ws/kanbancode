@@ -14,7 +14,8 @@ export default function TaskCard({ task, color, isDragging = false }) {
     <div
       style={{
         ...styles.card,
-        borderColor: isSelected ? color : 'var(--card-selected-border)',
+        background: color + '12',
+        borderColor: isSelected ? color : color + '30',
         opacity: isDragging ? 0.5 : 1,
       }}
       onClick={() => setSelectedTask(task.id)}
@@ -27,17 +28,28 @@ export default function TaskCard({ task, color, isDragging = false }) {
         <p style={styles.desc}>{task.description.slice(0, 100)}{task.description.length > 100 ? '...' : ''}</p>
       )}
       <div style={styles.footer}>
-        {task.working_dir && (
-          <span style={styles.tag} title={task.working_dir}>
-            {task.working_dir.split(/[\\/]/).pop()}
-          </span>
-        )}
         {isRunning && <span style={{ ...styles.tag, ...styles.runningTag }}>Running</span>}
         {isQueued && <span style={{ ...styles.tag, ...styles.queuedTag }}>Queued</span>}
         {task.needs_input === 1 && <span style={{ ...styles.tag, ...styles.inputTag }}>Needs Input</span>}
+        {task.updated_at && <span style={styles.timeTag}>{formatRelativeTime(task.updated_at)}</span>}
       </div>
     </div>
   );
+}
+
+function formatRelativeTime(ts) {
+  try {
+    const now = Date.now();
+    const then = new Date(ts + 'Z').getTime();
+    const diff = Math.floor((now - then) / 1000);
+    if (diff < 60) return 'just now';
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+    if (diff < 604800) return `${Math.floor(diff / 86400)}d ago`;
+    return new Date(ts + 'Z').toLocaleDateString();
+  } catch {
+    return '';
+  }
 }
 
 const styles = {
@@ -98,5 +110,10 @@ const styles = {
     background: 'var(--yellow)',
     color: 'var(--text-primary)',
     fontWeight: 600,
+  },
+  timeTag: {
+    fontSize: 10,
+    color: 'var(--text-muted)',
+    marginLeft: 'auto',
   },
 };

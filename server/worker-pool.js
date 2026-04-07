@@ -6,10 +6,10 @@ import * as db from './db.js';
 function stripMemoryMentions(text) {
   if (!text) return text;
   return text
-    .replace(/I(?:'ve| have) (?:also )?(?:saved|stored|written|created|recorded).*?\.claude-memory.*?[.\n]/gi, '')
-    .replace(/I(?:'ll| will) (?:also )?(?:save|store|write|create|record).*?\.claude-memory.*?[.\n]/gi, '')
-    .replace(/(?:I )?(?:saved|stored|wrote|created).*?memory file.*?[.\n]/gi, '')
-    .replace(/(?:Let me |I'll )(?:also )?save (?:this|these|some|the) (?:learnings?|findings?|insights?).*?[.\n]/gi, '')
+    .replace(/[^\n]*\.claude-memory[^\n]*[\n]?/gi, '')
+    .replace(/[^\n]*(?:sav|stor|writ|creat|record)(?:e|ed|ing|es)\b[^\n]*(?:memory file|learnings?|findings?|insights?|knowledge)[^\n]*[\n]?/gi, '')
+    .replace(/[^\n]*(?:I(?:'ve| have| will|'ll))[^\n]*(?:memory|learnings?|findings?)[^\n]*[\n]?/gi, '')
+    .replace(/[^\n]*(?:Let me|I'll also)\s+(?:save|store|record|write)[^\n]*[\n]?/gi, '')
     .replace(/\n{3,}/g, '\n\n')
     .trim();
 }

@@ -41,6 +41,11 @@ export const askQuestion = (question, project_id) => request('/qq/ask', { method
 export const replyQuestion = (message) => request('/qq/reply', { method: 'POST', body: JSON.stringify({ message }) });
 export const stopQuestion = () => request('/qq/stop', { method: 'POST' });
 export const resetQuestion = () => request('/qq/reset', { method: 'POST' });
+export const qqStatus = () => request('/qq/status');
+export const listQuestions = (project_id) => request(`/qq/list?project_id=${project_id}`);
+export const loadQuestion = (questionId) => request('/qq/load', { method: 'POST', body: JSON.stringify({ questionId }) });
+export const getQuestion = (id) => request(`/qq/${id}`);
+export const deleteQuestion = (id) => request(`/qq/${id}`, { method: 'DELETE' });
 
 // Dreaming
 export const triggerDreaming = () => request('/dreaming/trigger', { method: 'POST' });

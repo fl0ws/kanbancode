@@ -321,6 +321,42 @@ export function deleteProject(id) {
   run('DELETE FROM projects WHERE id = ?', [id]);
 }
 
+// --- Quick Questions ---
+
+export function getQuickQuestions(projectId) {
+  return all(
+    'SELECT id, project_id, title, conversation_id, created_at, updated_at FROM quick_questions WHERE project_id = ? ORDER BY updated_at DESC',
+    [projectId]
+  );
+}
+
+export function getQuickQuestion(id) {
+  const row = get('SELECT * FROM quick_questions WHERE id = ?', [id]);
+  if (row && row.messages) {
+    try { row.messages = JSON.parse(row.messages); } catch { row.messages = []; }
+  }
+  return row;
+}
+
+export function createQuickQuestion(id, projectId, title) {
+  run(
+    'INSERT INTO quick_questions (id, project_id, title) VALUES (?, ?, ?)',
+    [id, projectId, title]
+  );
+  return getQuickQuestion(id);
+}
+
+export function updateQuickQuestion(id, messages, conversationId) {
+  run(
+    'UPDATE quick_questions SET messages = ?, conversation_id = ?, updated_at = datetime(\'now\') WHERE id = ?',
+    [JSON.stringify(messages), conversationId || null, id]
+  );
+}
+
+export function deleteQuickQuestion(id) {
+  run('DELETE FROM quick_questions WHERE id = ?', [id]);
+}
+
 // Save on process exit
 process.on('exit', () => saveNow());
 process.on('SIGINT', () => { saveNow(); process.exit(0); });

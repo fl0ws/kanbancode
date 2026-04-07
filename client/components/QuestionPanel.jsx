@@ -110,14 +110,13 @@ export default function QuestionPanel({ taskId, questions }) {
 
 const styles = {
   container: {
-    margin: '12px 0',
     borderRadius: 10,
-    border: '1px solid var(--blue-border)',
-    background: 'var(--blue-bg)',
+    background: 'var(--bg-input)',
     overflow: 'hidden',
     display: 'flex',
     flexDirection: 'column',
     maxHeight: 400,
+    boxShadow: '0 2px 6px rgba(0,0,0,0.16), 0 1px 3px rgba(0,0,0,0.12)',
   },
   scrollArea: {
     flex: 1,

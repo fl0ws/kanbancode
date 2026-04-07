@@ -2,6 +2,7 @@ import { spawn, execSync } from 'child_process';
 import { writeFileSync, unlinkSync } from 'fs';
 import { join, resolve } from 'path';
 import { homedir, tmpdir } from 'os';
+import { randomUUID } from 'crypto';
 import { logger } from './logger.js';
 import { broadcast } from './ws.js';
 import * as db from './db.js';
@@ -12,7 +13,7 @@ export class QuickQuestionSession {
   constructor() {
     this.process = null;
     this.sessionId = null;
-    this.conversationId = null;
+    this.questionId = null;
     this.projectId = null;
     this.workingDir = null;
     this.outputBuffer = '';
@@ -28,7 +29,6 @@ export class QuickQuestionSession {
 
   ask(question, projectId) {
     if (this.process) {
-      // Already running — stop first, then re-ask as a follow-up
       return { error: 'A question is already being processed. Wait for it to finish or stop it first.' };
     }
 
@@ -44,22 +44,62 @@ export class QuickQuestionSession {
     }
     this.workingDir = resolve(workingDir);
 
-    const prompt = this._buildPrompt(question);
+    // Create a new question record
+    const id = randomUUID();
+    const title = question.length > 60 ? question.slice(0, 60) + '...' : question;
+    const qq = db.createQuickQuestion(id, projectId, title);
+    this.questionId = id;
+    this.sessionId = null;
+
+    // Save the user message
+    const messages = [{ role: 'user', text: question, time: new Date().toISOString() }];
+    db.updateQuickQuestion(id, messages, null);
+
+    const prompt = this._buildPrompt(question, false);
     this._spawn(prompt);
-    return { ok: true };
+    return { ok: true, questionId: id };
   }
 
   reply(message) {
-    if (!this.conversationId) {
+    if (!this.questionId) {
       return { error: 'No active conversation to reply to.' };
     }
     if (this.process) {
       return { error: 'Still processing. Wait for the current answer to finish.' };
     }
 
+    // Append user message
+    const qq = db.getQuickQuestion(this.questionId);
+    if (!qq) return { error: 'Question not found.' };
+    const messages = [...qq.messages, { role: 'user', text: message, time: new Date().toISOString() }];
+    db.updateQuickQuestion(this.questionId, messages, qq.conversation_id);
+
     const prompt = message + MEMORY_SUFFIX;
     this._spawn(prompt);
-    return { ok: true };
+    return { ok: true, questionId: this.questionId };
+  }
+
+  // Load an existing question to continue the conversation
+  load(questionId) {
+    if (this.process) {
+      return { error: 'A question is currently being processed.' };
+    }
+
+    const qq = db.getQuickQuestion(questionId);
+    if (!qq) return { error: 'Question not found.' };
+
+    const project = db.getProject(qq.project_id);
+    if (!project?.working_dir) return { error: 'Project has no working directory.' };
+
+    this.questionId = questionId;
+    this.projectId = qq.project_id;
+    this.sessionId = qq.conversation_id;
+
+    let workingDir = project.working_dir;
+    if (workingDir.startsWith('~')) workingDir = workingDir.replace(/^~/, homedir());
+    this.workingDir = resolve(workingDir);
+
+    return { ok: true, question: qq };
   }
 
   stop() {
@@ -75,16 +115,16 @@ export class QuickQuestionSession {
 
   reset() {
     this.stop();
-    this.conversationId = null;
+    this.questionId = null;
     this.sessionId = null;
     this.projectId = null;
     this.workingDir = null;
     this.finalResult = null;
+    this.lastAssistantText = null;
   }
 
-  _buildPrompt(question) {
-    if (this.conversationId) {
-      // Follow-up — conversation context already loaded via --resume
+  _buildPrompt(question, isResume) {
+    if (isResume || this.sessionId) {
       return question + MEMORY_SUFFIX;
     }
 
@@ -113,15 +153,15 @@ ${question}${MEMORY_SUFFIX}`;
     }
 
     const parts = ['claude', '--dangerously-skip-permissions', '--output-format', 'stream-json', '--verbose'];
-    if (this.conversationId) {
-      parts.push('--resume', this.conversationId);
+    if (this.sessionId) {
+      parts.push('--resume', this.sessionId);
     }
 
     const command = process.platform === 'win32'
       ? `type "${promptFile}" | ${parts.join(' ')}`
       : `cat "${promptFile}" | ${parts.join(' ')}`;
 
-    logger.info('Quick question spawning', { workingDir: this.workingDir, resume: !!this.conversationId });
+    logger.info('Quick question spawning', { questionId: this.questionId, resume: !!this.sessionId });
 
     this.finalResult = null;
     this.lastAssistantText = null;
@@ -141,7 +181,6 @@ ${question}${MEMORY_SUFFIX}`;
     proc.stdout.on('data', (data) => this._onData(data.toString()));
 
     proc.stderr.on('data', (data) => {
-      // Parse stderr for JSON events too
       const lines = data.toString().split('\n');
       for (const line of lines) {
         const trimmed = line.replace(/\r$/, '').trim();
@@ -160,12 +199,24 @@ ${question}${MEMORY_SUFFIX}`;
 
       // Save session for follow-ups
       if (this.sessionId) {
-        this.conversationId = this.sessionId;
+        // Persist conversation_id and append assistant message
+        const result = stripMemoryMentions(this.finalResult || '');
+        if (this.questionId) {
+          const qq = db.getQuickQuestion(this.questionId);
+          if (qq) {
+            const messages = [...qq.messages];
+            if (result) {
+              messages.push({ role: 'assistant', text: result, time: new Date().toISOString() });
+            }
+            db.updateQuickQuestion(this.questionId, messages, this.sessionId);
+          }
+        }
       }
 
-      logger.info('Quick question finished', { code, sessionId: this.sessionId });
+      logger.info('Quick question finished', { code, questionId: this.questionId, sessionId: this.sessionId });
 
       broadcast('qq:finished', {
+        questionId: this.questionId,
         result: stripMemoryMentions(this.finalResult || ''),
         sessionId: this.sessionId,
       });
@@ -190,13 +241,12 @@ ${question}${MEMORY_SUFFIX}`;
         const json = JSON.parse(cleaned);
         this._handleJson(json);
       } catch {
-        // Non-JSON lines are ignored (no thinking stream)
+        // Non-JSON lines are ignored
       }
     }
   }
 
   _handleJson(json) {
-    // Track assistant text blocks as fallback for final result
     if (json.type === 'assistant' && json.message) {
       const content = json.message.content;
       if (Array.isArray(content)) {
@@ -204,21 +254,18 @@ ${question}${MEMORY_SUFFIX}`;
           if (block.type === 'text' && block.text) {
             this.lastAssistantText = block.text;
           }
-          // Broadcast friendly status for tool use
           if (block.type === 'tool_use' && block.name) {
-            const name = block.name;
             const input = block.input || {};
-            // Skip broadcasting status for memory-related operations
             const filePath = input.file_path || input.path || '';
             if (filePath.includes('.claude-memory')) continue;
 
             let status;
-            if (name === 'Read') status = `Reading ${filePath.split(/[\\/]/).pop() || 'file'}...`;
-            else if (name === 'Grep') status = `Searching for "${(input.pattern || '').slice(0, 30)}"...`;
-            else if (name === 'Glob') status = `Looking for files...`;
-            else if (name === 'Bash') status = `Running command...`;
-            else if (name === 'Write') continue; // Hide all writes from QQ status
-            else if (name === 'Agent') status = `Exploring codebase...`;
+            if (block.name === 'Read') status = `Reading ${filePath.split(/[\\/]/).pop() || 'file'}...`;
+            else if (block.name === 'Grep') status = `Searching for "${(input.pattern || '').slice(0, 30)}"...`;
+            else if (block.name === 'Glob') status = `Looking for files...`;
+            else if (block.name === 'Bash') status = `Running command...`;
+            else if (block.name === 'Write') continue;
+            else if (block.name === 'Agent') status = `Exploring codebase...`;
             else status = `Working...`;
             broadcast('qq:status', { status });
           }
@@ -226,17 +273,14 @@ ${question}${MEMORY_SUFFIX}`;
       }
     }
 
-    // System descriptions → friendly status
     if (json.type === 'system' && json.description) {
       broadcast('qq:status', { status: json.description.slice(0, 60) });
     }
 
-    // Capture result — use result field, fall back to last assistant text
     if (json.type === 'result') {
       this.finalResult = json.result || this.lastAssistantText || '';
     }
 
-    // Session ID
     const sid = json.session_id || json.sessionId;
     if (sid && !this.sessionId) {
       this.sessionId = sid;
@@ -280,13 +324,16 @@ You MUST save a memory file before finishing. This is not optional.
 
 function stripMemoryMentions(text) {
   if (!text) return text;
-  // Remove paragraphs/sentences about saving memory files
   return text
-    .replace(/I(?:'ve| have) (?:also )?(?:saved|stored|written|created|recorded).*?\.claude-memory.*?[.\n]/gi, '')
-    .replace(/I(?:'ll| will) (?:also )?(?:save|store|write|create|record).*?\.claude-memory.*?[.\n]/gi, '')
-    .replace(/(?:I )?(?:saved|stored|wrote|created).*?memory file.*?[.\n]/gi, '')
-    .replace(/(?:Let me |I'll )(?:also )?save (?:this|these|some|the) (?:learnings?|findings?|insights?).*?[.\n]/gi, '')
+    // Remove any sentence/line mentioning .claude-memory
+    .replace(/[^\n]*\.claude-memory[^\n]*[\n]?/gi, '')
+    // Remove sentences about saving/storing memory/learnings/findings
+    .replace(/[^\n]*(?:sav|stor|writ|creat|record)(?:e|ed|ing|es)\b[^\n]*(?:memory file|learnings?|findings?|insights?|knowledge)[^\n]*[\n]?/gi, '')
+    // Remove "I've also saved/stored..." patterns
+    .replace(/[^\n]*(?:I(?:'ve| have| will|'ll))[^\n]*(?:memory|learnings?|findings?)[^\n]*[\n]?/gi, '')
+    // Remove "Let me save..." patterns
+    .replace(/[^\n]*(?:Let me|I'll also)\s+(?:save|store|record|write)[^\n]*[\n]?/gi, '')
+    // Clean up excess newlines
     .replace(/\n{3,}/g, '\n\n')
     .trim();
 }
-

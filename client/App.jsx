@@ -95,11 +95,11 @@ export default function App() {
         <div style={{ flex: 1, overflow: 'hidden' }}>
           <Board onAddTask={() => setShowCreate(true)} />
         </div>
-        {selectedTaskId && (
-          <TaskDetail taskId={selectedTaskId} />
-        )}
       </div>
 
+      {selectedTaskId && (
+        <TaskDetail taskId={selectedTaskId} />
+      )}
       {showCreate && <CreateTaskModal onClose={() => setShowCreate(false)} />}
       {showArchive && <ArchiveModal onClose={() => setShowArchive(false)} />}
       {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
@@ -140,9 +140,9 @@ function ProjectTitle({ projects, activeProject, onSelect, onManage }) {
               }}
               onClick={() => { onSelect(p.id); setOpen(false); }}
             >
-              <span>{p.name}</span>
+              <span style={styles.projectOptionName}>{p.name}</span>
               {p.working_dir && (
-                <span style={styles.projectOptionDir}>{p.working_dir.split(/[\\/]/).pop()}</span>
+                <span style={styles.projectOptionDir}>{p.working_dir}</span>
               )}
             </button>
           ))}
@@ -256,8 +256,8 @@ const styles = {
   },
   projectOption: {
     display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: 'column',
+    alignItems: 'flex-start',
     width: '100%',
     padding: '8px 14px',
     border: 'none',
@@ -266,16 +266,26 @@ const styles = {
     fontSize: 13,
     color: 'var(--text-secondary)',
     textAlign: 'left',
+    gap: 1,
   },
   projectOptionActive: {
     background: 'var(--blue-bg)',
     color: 'var(--blue)',
     fontWeight: 500,
   },
+  projectOptionName: {
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    width: '100%',
+  },
   projectOptionDir: {
     fontSize: 11,
     color: 'var(--text-muted)',
-    marginLeft: 8,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    width: '100%',
   },
   projectDivider: {
     height: 1,

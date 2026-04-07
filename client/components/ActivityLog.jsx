@@ -1,22 +1,58 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { marked } from 'marked';
+import QuestionPanel from './QuestionPanel.jsx';
 
 marked.setOptions({ breaks: false, gfm: true });
 
-export default function ActivityLog({ activities }) {
+const IDLE_PHRASES = [
+  'Pondering...',
+  'Rummaging through code...',
+  'Connecting the dots...',
+  'Following the breadcrumbs...',
+  'Digging deeper...',
+  'Almost there...',
+  'Reading between the lines...',
+  'Untangling the logic...',
+];
+
+export default function ActivityLog({ activities, liveOutput, isRunning, pendingQuestions, taskId }) {
   const [tab, setTab] = useState('chat');
   const scrollRef = useRef(null);
+  const [ponderStatus, setPonderStatus] = useState('');
+  const idlePhraseRef = useRef(0);
+  const idleTimerRef = useRef(null);
 
   const chatMessages = activities.filter(a => a.author !== 'system');
   const systemEvents = activities.filter(a => a.author === 'system');
+  const hasThoughts = !!(liveOutput || isRunning);
+
+  // Rotate idle phrases while running
+  useEffect(() => {
+    if (isRunning) {
+      idlePhraseRef.current = 0;
+      setPonderStatus(IDLE_PHRASES[0]);
+      idleTimerRef.current = setInterval(() => {
+        idlePhraseRef.current = (idlePhraseRef.current + 1) % IDLE_PHRASES.length;
+        setPonderStatus(IDLE_PHRASES[idlePhraseRef.current]);
+      }, 3000);
+      return () => clearInterval(idleTimerRef.current);
+    } else {
+      if (idleTimerRef.current) clearInterval(idleTimerRef.current);
+      setPonderStatus('');
+    }
+  }, [isRunning]);
+
+
+  // Auto-switch to chat when questions arrive
+  useEffect(() => {
+    if (pendingQuestions) setTab('chat');
+  }, [pendingQuestions]);
 
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [activities, tab]);
-
-  if (!activities.length) return null;
+  }, [activities, tab, liveOutput, pendingQuestions]);
 
   return (
     <div style={styles.container}>
@@ -28,6 +64,13 @@ export default function ActivityLog({ activities }) {
           Chat{chatMessages.length > 0 ? ` (${chatMessages.length})` : ''}
         </button>
         <button
+          style={{ ...styles.tab, ...(tab === 'thoughts' ? styles.tabActive : {}) }}
+          onClick={() => setTab('thoughts')}
+        >
+          Thoughts
+          {isRunning && <span style={styles.tabPulse} />}
+        </button>
+        <button
           style={{ ...styles.tab, ...(tab === 'log' ? styles.tabActive : {}) }}
           onClick={() => setTab('log')}
         >
@@ -37,11 +80,36 @@ export default function ActivityLog({ activities }) {
 
       <div ref={scrollRef} style={styles.scrollArea}>
         {tab === 'chat' && (
-          chatMessages.length === 0
-            ? <p style={styles.empty}>No messages yet</p>
-            : chatMessages.map(entry => (
-                <ChatBubble key={entry.id} entry={entry} />
-              ))
+          <>
+            {chatMessages.length === 0 && !pendingQuestions && (
+              <p style={styles.empty}>No messages yet</p>
+            )}
+            {chatMessages.map(entry => (
+              <ChatBubble key={entry.id} entry={entry} />
+            ))}
+            {isRunning && !pendingQuestions && (
+              <div style={styles.bubbleRow}>
+                <div style={styles.avatar}>🤖</div>
+                <div style={styles.ponderBubble}>
+                  <span style={styles.spinner} />
+                  <span style={styles.ponderText}>{ponderStatus}</span>
+                </div>
+              </div>
+            )}
+            {pendingQuestions && (
+              <div style={styles.bubbleRow}>
+                <div style={styles.avatar}>🤖</div>
+                <div style={styles.questionBubble}>
+                  <QuestionPanel taskId={taskId} questions={pendingQuestions} />
+                </div>
+              </div>
+            )}
+          </>
+        )}
+        {tab === 'thoughts' && (
+          <pre style={styles.thoughtsText}>
+            {liveOutput || (isRunning ? 'Waiting for output...' : 'No activity yet')}
+          </pre>
         )}
         {tab === 'log' && (
           systemEvents.length === 0
@@ -108,7 +176,7 @@ function formatTime(ts) {
 
 const styles = {
   container: {
-    marginTop: 16,
+    marginTop: 0,
     display: 'flex',
     flexDirection: 'column',
     borderRadius: 10,
@@ -122,6 +190,7 @@ const styles = {
     display: 'flex',
     borderBottom: '1px solid var(--border)',
     background: 'var(--bg-input)',
+    flexShrink: 0,
   },
   tab: {
     flex: 1,
@@ -130,14 +199,29 @@ const styles = {
     fontWeight: 500,
     color: 'var(--text-muted)',
     background: 'none',
-    border: 'none',
-    borderBottom: '2px solid transparent',
+    borderWidth: 0,
+    borderStyle: 'none',
+    borderBottomWidth: 2,
+    borderBottomStyle: 'solid',
+    borderBottomColor: 'transparent',
+    outline: 'none',
     cursor: 'pointer',
-    transition: 'color 0.15s, border-color 0.15s',
+    transition: 'color 0.15s, border-bottom-color 0.15s',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
   },
   tabActive: {
     color: 'var(--text-primary)',
     borderBottomColor: 'var(--blue)',
+  },
+  tabPulse: {
+    width: 6,
+    height: 6,
+    borderRadius: '50%',
+    background: 'var(--green, #4CAF50)',
+    animation: 'pulse 1.5s ease-in-out infinite',
   },
   scrollArea: {
     flex: 1,
@@ -150,6 +234,18 @@ const styles = {
     fontSize: 12,
     textAlign: 'center',
     padding: 16,
+  },
+
+  // Thoughts
+  thoughtsText: {
+    fontSize: 12,
+    lineHeight: 1.5,
+    color: 'var(--text-muted)',
+    whiteSpace: 'pre-wrap',
+    wordBreak: 'break-word',
+    margin: 0,
+    fontFamily: "'Cascadia Code', 'Fira Code', 'Consolas', monospace",
+    fontStyle: 'italic',
   },
 
   // Chat bubbles
@@ -177,30 +273,61 @@ const styles = {
     color: 'var(--blue)',
   },
   bubble: {
-    maxWidth: '78%',
+    maxWidth: '80%',
     padding: '8px 12px',
-    borderRadius: 16,
-    lineHeight: 1.4,
+    borderRadius: 14,
+    fontSize: 13,
+    lineHeight: 1.5,
+    whiteSpace: 'pre-wrap',
+    wordBreak: 'break-word',
+    color: 'var(--text-primary)',
+    boxShadow: '0 2px 6px rgba(0,0,0,0.16), 0 1px 3px rgba(0,0,0,0.12)',
   },
   claudeBubble: {
-    background: 'var(--green)',
+    background: 'var(--bg-input)',
     borderBottomLeftRadius: 4,
+  },
+  questionBubble: {
+    maxWidth: '85%',
+  },
+  ponderBubble: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 10,
+    padding: '10px 16px',
+    borderRadius: 14,
+    borderBottomLeftRadius: 4,
+    background: 'var(--bg-input)',
+    boxShadow: '0 2px 6px rgba(0,0,0,0.16), 0 1px 3px rgba(0,0,0,0.12)',
+  },
+  spinner: {
+    width: 16,
+    height: 16,
+    borderRadius: '50%',
+    borderWidth: 2,
+    borderStyle: 'solid',
+    borderColor: 'var(--border)',
+    borderTopColor: 'var(--blue)',
+    animation: 'spin 0.8s linear infinite',
+    flexShrink: 0,
+  },
+  ponderText: {
+    fontSize: 13,
+    color: 'var(--text-muted)',
+    fontStyle: 'italic',
   },
   userBubble: {
     background: 'var(--blue)',
+    color: '#fff',
     borderBottomRightRadius: 4,
   },
   messageText: {
-    fontSize: 13,
-    color: '#FFFFFF',
-    whiteSpace: 'pre-wrap',
-    wordBreak: 'break-word',
     margin: 0,
   },
   timestamp: {
     display: 'block',
     fontSize: 10,
-    color: '#ffffffbb',
+    color: 'var(--text-muted)',
     marginTop: 4,
   },
 

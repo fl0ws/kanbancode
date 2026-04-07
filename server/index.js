@@ -92,6 +92,39 @@ app.post('/api/qq/stop', (req, res) => {
   res.json({ ok: true });
 });
 
+app.get('/api/qq/status', (req, res) => {
+  res.json({
+    active: qq.isActive(),
+    questionId: qq.questionId,
+    projectId: qq.projectId,
+  });
+});
+
+app.get('/api/qq/list', (req, res) => {
+  const { project_id } = req.query;
+  if (!project_id) return res.status(400).json({ error: 'project_id is required' });
+  res.json(db.getQuickQuestions(project_id));
+});
+
+app.get('/api/qq/:id', (req, res) => {
+  const question = db.getQuickQuestion(req.params.id);
+  if (!question) return res.status(404).json({ error: 'Not found' });
+  res.json(question);
+});
+
+app.post('/api/qq/load', (req, res) => {
+  const { questionId } = req.body;
+  if (!questionId) return res.status(400).json({ error: 'questionId is required' });
+  const result = qq.load(questionId);
+  if (result.error) return res.status(400).json(result);
+  res.json(result);
+});
+
+app.delete('/api/qq/:id', (req, res) => {
+  db.deleteQuickQuestion(req.params.id);
+  res.json({ ok: true });
+});
+
 app.post('/api/qq/reset', (req, res) => {
   qq.reset();
   res.json({ ok: true });
