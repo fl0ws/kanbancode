@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { createTask } from '../api.js';
+import React, { useState, useEffect, useRef } from 'react';
+import { createTask, fetchCommands } from '../api.js';
 import { useStore } from '../store.js';
+import SlashCommandOverlay from './SlashCommandOverlay.jsx';
 
 export default function CreateTaskModal({ onClose }) {
   const activeProjectId = useStore(s => s.activeProjectId);
@@ -9,6 +10,46 @@ export default function CreateTaskModal({ onClose }) {
   const [description, setDescription] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
+  const [commands, setCommands] = useState([]);
+  const [showSlash, setShowSlash] = useState(false);
+  const [slashFilter, setSlashFilter] = useState('');
+  const descRef = useRef(null);
+
+  useEffect(() => {
+    fetchCommands().then(setCommands).catch(() => {});
+  }, []);
+
+  function handleDescChange(e) {
+    const val = e.target.value;
+    setDescription(val);
+
+    // Detect / at start of line or after newline
+    const cursorPos = e.target.selectionStart;
+    const textBefore = val.slice(0, cursorPos);
+    const lastLineStart = textBefore.lastIndexOf('\n') + 1;
+    const currentLine = textBefore.slice(lastLineStart);
+
+    if (currentLine.startsWith('/')) {
+      setShowSlash(true);
+      setSlashFilter(currentLine.slice(1));
+    } else {
+      setShowSlash(false);
+    }
+  }
+
+  function handleSelectCommand(cmd) {
+    // Replace the /command text with the template
+    const cursorPos = descRef.current?.selectionStart || description.length;
+    const textBefore = description.slice(0, cursorPos);
+    const textAfter = description.slice(cursorPos);
+    const lastLineStart = textBefore.lastIndexOf('\n') + 1;
+    const before = description.slice(0, lastLineStart);
+    const newDesc = before + cmd.template + textAfter;
+    setDescription(newDesc);
+    setShowSlash(false);
+    // Focus back on textarea
+    setTimeout(() => descRef.current?.focus(), 0);
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -49,13 +90,24 @@ export default function CreateTaskModal({ onClose }) {
           </label>
           <label style={styles.label}>
             Description
-            <textarea
-              style={{ ...styles.input, ...styles.textarea }}
-              value={description}
-              onChange={e => setDescription(e.target.value)}
-              placeholder="Details, requirements, context..."
-              rows={4}
-            />
+            <div style={styles.descWrapper}>
+              <textarea
+                ref={descRef}
+                style={{ ...styles.input, ...styles.textarea }}
+                value={description}
+                onChange={handleDescChange}
+                placeholder='Details, requirements, context... Type "/" for commands'
+                rows={4}
+              />
+              {showSlash && (
+                <SlashCommandOverlay
+                  commands={commands}
+                  filter={slashFilter}
+                  onSelect={handleSelectCommand}
+                  onClose={() => setShowSlash(false)}
+                />
+              )}
+            </div>
           </label>
           {error && <p style={styles.error}>{error}</p>}
           <div style={styles.actions}>
@@ -135,6 +187,9 @@ const styles = {
   textarea: {
     resize: 'vertical',
     fontFamily: 'inherit',
+  },
+  descWrapper: {
+    position: 'relative',
   },
   error: {
     color: 'var(--red)',

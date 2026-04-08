@@ -357,6 +357,36 @@ export function deleteQuickQuestion(id) {
   run('DELETE FROM quick_questions WHERE id = ?', [id]);
 }
 
+// --- Commands ---
+
+export function getCommands() {
+  return all('SELECT * FROM commands ORDER BY name ASC');
+}
+
+export function getCommand(id) {
+  return get('SELECT * FROM commands WHERE id = ?', [id]);
+}
+
+export function createCommand(id, name, description, template) {
+  run(
+    'INSERT INTO commands (id, name, description, template) VALUES (?, ?, ?, ?)',
+    [id, name.toLowerCase().replace(/\s+/g, '-'), description || '', template]
+  );
+  return getCommand(id);
+}
+
+export function updateCommand(id, name, description, template) {
+  run(
+    'UPDATE commands SET name = ?, description = ?, template = ? WHERE id = ?',
+    [name.toLowerCase().replace(/\s+/g, '-'), description || '', template, id]
+  );
+  return getCommand(id);
+}
+
+export function deleteCommand(id) {
+  run('DELETE FROM commands WHERE id = ? AND builtin = 0', [id]);
+}
+
 // Save on process exit
 process.on('exit', () => saveNow());
 process.on('SIGINT', () => { saveNow(); process.exit(0); });

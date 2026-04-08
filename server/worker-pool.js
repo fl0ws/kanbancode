@@ -189,6 +189,12 @@ export class WorkerPool {
       broadcast('task:questions', { taskId, questions });
     });
 
+    proc.on('rate_limited', (msg) => {
+      logger.warn('Claude rate limited', { taskId, msg });
+      const entry = db.addActivity(taskId, 'system', msg);
+      broadcast('task:activity', { taskId, entry });
+    });
+
     proc.on('error', (err) => {
       logger.error('Claude process error', { taskId, error: err.message });
       db.addActivity(taskId, 'system', `Process error: ${err.message}`);

@@ -247,8 +247,24 @@ export class ClaudeProcess extends EventEmitter {
     // --- Final result (chat response) ---
 
     if (json.type === 'result') {
-      // Prefer the result field; fall back to accumulated assistant text
-      this.finalResult = json.result || this.assistantTexts.join('\n\n') || '';
+      if (json.is_error) {
+        // Error result — include the error message so the user sees it
+        this.finalResult = json.result || 'Claude encountered an error.';
+      } else {
+        // Prefer the result field; fall back to accumulated assistant text
+        this.finalResult = json.result || this.assistantTexts.join('\n\n') || '';
+      }
+    }
+
+    // Rate limit events — surface to the user
+    if (json.type === 'rate_limit_event' && json.rate_limit_info?.status === 'blocked') {
+      const resetsAt = json.rate_limit_info.resetsAt;
+      const resetsIn = resetsAt ? Math.max(0, Math.ceil((resetsAt * 1000 - Date.now()) / 60000)) : 0;
+      const msg = resetsIn > 0
+        ? `Rate limited. Resets in ~${resetsIn} minutes.`
+        : 'Rate limited. Please try again later.';
+      this._appendOutput(`\n[Rate limit: ${msg}]\n`);
+      this.emit('rate_limited', msg);
     }
 
     // --- Session ID extraction ---

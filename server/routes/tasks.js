@@ -283,6 +283,42 @@ router.delete('/api/projects/:id', (req, res) => {
   res.json({ ok: true });
 });
 
+// --- Commands ---
+
+router.get('/api/commands', (req, res) => {
+  res.json(db.getCommands());
+});
+
+router.post('/api/commands', (req, res) => {
+  const { name, description, template } = req.body;
+  if (!name?.trim()) return res.status(400).json({ error: 'Name is required' });
+  if (!template?.trim()) return res.status(400).json({ error: 'Template is required' });
+  const id = randomUUID();
+  const cmd = db.createCommand(id, name.trim(), description || '', template.trim());
+  res.status(201).json(cmd);
+});
+
+router.patch('/api/commands/:id', (req, res) => {
+  const cmd = db.getCommand(req.params.id);
+  if (!cmd) return res.status(404).json({ error: 'Command not found' });
+  const { name, description, template } = req.body;
+  const updated = db.updateCommand(
+    req.params.id,
+    name !== undefined ? name : cmd.name,
+    description !== undefined ? description : cmd.description,
+    template !== undefined ? template : cmd.template
+  );
+  res.json(updated);
+});
+
+router.delete('/api/commands/:id', (req, res) => {
+  const cmd = db.getCommand(req.params.id);
+  if (!cmd) return res.status(404).json({ error: 'Command not found' });
+  if (cmd.builtin) return res.status(400).json({ error: 'Cannot delete built-in commands' });
+  db.deleteCommand(req.params.id);
+  res.json({ ok: true });
+});
+
 // Hook for worker pool integration
 router.onMoveToClaudeCallback = null;
 router.onStopCallback = null;

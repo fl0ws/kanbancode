@@ -1,20 +1,59 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useStore } from '../store.js';
+import { createTask } from '../api.js';
 import SortableCard from './SortableCard.jsx';
 
 export default function Column({ columnId, label, color, onAddTask }) {
   const taskIds = useStore(s => s.columns[columnId]);
   const tasks = useStore(s => s.tasks);
+  const activeProjectId = useStore(s => s.activeProjectId);
+  const [fileDragOver, setFileDragOver] = useState(false);
 
   const { setNodeRef, isOver } = useDroppable({ id: columnId });
+  const isNotStarted = columnId === 'not_started';
+
+  function handleDragOver(e) {
+    if (!isNotStarted) return;
+    const hasFiles = e.dataTransfer?.types?.includes('Files');
+    if (hasFiles) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'copy';
+      setFileDragOver(true);
+    }
+  }
+
+  function handleDragLeave() {
+    setFileDragOver(false);
+  }
+
+  async function handleDrop(e) {
+    setFileDragOver(false);
+    if (!isNotStarted) return;
+    const files = [...(e.dataTransfer?.files || [])].filter(f => f.name.endsWith('.md'));
+    if (files.length === 0) return;
+    e.preventDefault();
+    e.stopPropagation();
+
+    for (const file of files) {
+      const content = await file.text();
+      const title = file.name.replace(/\.md$/i, '').replace(/[-_]/g, ' ');
+      await createTask({ title, description: content, project_id: activeProjectId });
+    }
+  }
 
   return (
-    <div style={{
-      ...styles.column,
-      ...(isOver ? { borderColor: color + '66' } : {}),
-    }}>
+    <div
+      style={{
+        ...styles.column,
+        ...(isOver ? { borderColor: color + '66' } : {}),
+        ...(fileDragOver ? { borderColor: color, borderWidth: 2, borderStyle: 'dashed' } : {}),
+      }}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
       <div style={styles.header}>
         <span style={{ ...styles.dot, background: color }} />
         <span style={styles.label}>{label}</span>
@@ -25,6 +64,9 @@ export default function Column({ columnId, label, color, onAddTask }) {
       </div>
       <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>
         <div ref={setNodeRef} style={styles.list}>
+          {fileDragOver && (
+            <div style={styles.dropHint}>Drop .md files to create tasks</div>
+          )}
           {taskIds.map(id => {
             const task = tasks[id];
             if (!task) return null;
@@ -101,5 +143,15 @@ const styles = {
     flexDirection: 'column',
     gap: 6,
     minHeight: 60,
+  },
+  dropHint: {
+    padding: '12px 8px',
+    textAlign: 'center',
+    fontSize: 12,
+    color: 'var(--text-muted)',
+    fontStyle: 'italic',
+    borderRadius: 8,
+    border: '1px dashed var(--border)',
+    background: 'var(--bg-input)',
   },
 };

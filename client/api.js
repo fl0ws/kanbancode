@@ -50,6 +50,12 @@ export const deleteQuestion = (id) => request(`/qq/${id}`, { method: 'DELETE' })
 // Dreaming
 export const triggerDreaming = () => request('/dreaming/trigger', { method: 'POST' });
 
+// Commands
+export const fetchCommands = () => request('/commands');
+export const createCommand = (data) => request('/commands', { method: 'POST', body: JSON.stringify(data) });
+export const updateCommand = (id, data) => request(`/commands/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+export const deleteCommand = (id) => request(`/commands/${id}`, { method: 'DELETE' });
+
 // Projects
 export const fetchProjects = () => request('/projects');
 export const createProject = (data) => request('/projects', { method: 'POST', body: JSON.stringify(data) });

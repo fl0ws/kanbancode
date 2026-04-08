@@ -11,6 +11,7 @@ import ConcurrencyPrompt from './components/ConcurrencyPrompt.jsx';
 import SettingsModal from './components/SettingsModal.jsx';
 import ManageProjectsModal from './components/ManageProjectsModal.jsx';
 import QuickQuestion from './components/QuickQuestion.jsx';
+import ManageCommandsModal from './components/ManageCommandsModal.jsx';
 
 function useZoom() {
   const [zoom, setZoom] = useState(() => Number(localStorage.getItem('kanban_zoom')) || 100);
@@ -24,6 +25,7 @@ function useZoom() {
 export default function App() {
   const [showCreate, setShowCreate] = useState(false);
   const [showArchive, setShowArchive] = useState(false);
+  const [showCommands, setShowCommands] = useState(false);
   const [showQuickQuestion, setShowQuickQuestion] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showManageProjects, setShowManageProjects] = useState(false);
@@ -100,6 +102,7 @@ export default function App() {
           <button style={styles.themeBtn} onClick={toggleTheme} title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}>
             {theme === 'light' ? '🌙' : '☀️'}
           </button>
+          <button style={styles.btn} onClick={() => setShowCommands(true)}>Commands</button>
           <button style={styles.btn} onClick={() => setShowSettings(true)}>Settings</button>
           <button style={styles.btn} onClick={() => setShowArchive(true)}>Archive</button>
           <button style={{ ...styles.btn, ...styles.btnPrimary }} onClick={() => setShowCreate(true)}>+ New Task</button>
@@ -119,6 +122,7 @@ export default function App() {
       {showArchive && <ArchiveModal onClose={() => setShowArchive(false)} />}
       {showSettings && <SettingsModal onClose={() => setShowSettings(false)} zoom={zoom} setZoom={setZoom} />}
       {showManageProjects && <ManageProjectsModal onClose={() => setShowManageProjects(false)} />}
+      {showCommands && <ManageCommandsModal onClose={() => setShowCommands(false)} />}
       {showQuickQuestion && <QuickQuestion onClose={() => setShowQuickQuestion(false)} />}
       {showConcurrencyPrompt && <ConcurrencyPrompt />}
       <MultiSelectBar />
