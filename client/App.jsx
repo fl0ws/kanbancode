@@ -12,6 +12,15 @@ import SettingsModal from './components/SettingsModal.jsx';
 import ManageProjectsModal from './components/ManageProjectsModal.jsx';
 import QuickQuestion from './components/QuickQuestion.jsx';
 
+function useZoom() {
+  const [zoom, setZoom] = useState(() => Number(localStorage.getItem('kanban_zoom')) || 100);
+  useEffect(() => {
+    document.getElementById('root').style.zoom = (zoom / 100).toString();
+    localStorage.setItem('kanban_zoom', String(zoom));
+  }, [zoom]);
+  return { zoom, setZoom };
+}
+
 export default function App() {
   const [showCreate, setShowCreate] = useState(false);
   const [showArchive, setShowArchive] = useState(false);
@@ -29,6 +38,7 @@ export default function App() {
   const setProjects = useStore(s => s.setProjects);
   const setActiveProject = useStore(s => s.setActiveProject);
   const { theme, toggleTheme } = useTheme();
+  const { zoom, setZoom } = useZoom();
 
   useWebSocket();
 
@@ -107,7 +117,7 @@ export default function App() {
       )}
       {showCreate && <CreateTaskModal onClose={() => setShowCreate(false)} />}
       {showArchive && <ArchiveModal onClose={() => setShowArchive(false)} />}
-      {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
+      {showSettings && <SettingsModal onClose={() => setShowSettings(false)} zoom={zoom} setZoom={setZoom} />}
       {showManageProjects && <ManageProjectsModal onClose={() => setShowManageProjects(false)} />}
       {showQuickQuestion && <QuickQuestion onClose={() => setShowQuickQuestion(false)} />}
       {showConcurrencyPrompt && <ConcurrencyPrompt />}

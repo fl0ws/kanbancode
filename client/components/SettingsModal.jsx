@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { configurePool, saveSetting, fetchHealth } from '../api.js';
 import { useStore } from '../store.js';
 
-export default function SettingsModal({ onClose }) {
+export default function SettingsModal({ onClose, zoom, setZoom }) {
   const poolStatus = useStore(s => s.poolStatus);
   const setPoolStatus = useStore(s => s.setPoolStatus);
   const [maxConcurrency, setMaxConcurrency] = useState(poolStatus.maxConcurrency || 3);
@@ -107,6 +107,26 @@ Complete the task described above. When finished, provide a summary of what you 
                 Load default
               </button>
             )}
+          </label>
+
+          <label style={styles.label}>
+            Display Zoom: {zoom}%
+            <div style={styles.sliderRow}>
+              <span style={styles.sliderLabel}>80%</span>
+              <input
+                type="range"
+                min="80"
+                max="150"
+                step="5"
+                value={zoom}
+                onChange={e => setZoom(Number(e.target.value))}
+                style={styles.slider}
+              />
+              <span style={styles.sliderLabel}>150%</span>
+            </div>
+            <span style={styles.hint}>
+              Scales the entire interface. Useful for high-DPI screens or accessibility.
+            </span>
           </label>
 
           {message && (
@@ -214,6 +234,22 @@ const styles = {
     color: 'var(--text-tertiary)',
     fontSize: 11,
     cursor: 'pointer',
+  },
+  sliderRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 6,
+  },
+  slider: {
+    flex: 1,
+    cursor: 'pointer',
+    accentColor: 'var(--blue)',
+  },
+  sliderLabel: {
+    fontSize: 11,
+    color: 'var(--text-muted)',
+    flexShrink: 0,
   },
   message: {
     fontSize: 13,
