@@ -20,7 +20,7 @@ export class QuickQuestionSession {
     this.batchTimer = null;
     this.lineBuffer = '';
     this.finalResult = null;
-    this.lastAssistantText = null;
+    this.assistantTexts = [];
   }
 
   isActive() {
@@ -120,7 +120,7 @@ export class QuickQuestionSession {
     this.projectId = null;
     this.workingDir = null;
     this.finalResult = null;
-    this.lastAssistantText = null;
+    this.assistantTexts = [];
   }
 
   _buildPrompt(question, isResume) {
@@ -164,7 +164,7 @@ ${question}${MEMORY_SUFFIX}`;
     logger.info('Quick question spawning', { questionId: this.questionId, resume: !!this.sessionId });
 
     this.finalResult = null;
-    this.lastAssistantText = null;
+    this.assistantTexts = [];
     this.outputBuffer = '';
     this.lineBuffer = '';
 
@@ -200,7 +200,8 @@ ${question}${MEMORY_SUFFIX}`;
       // Save session for follow-ups
       if (this.sessionId) {
         // Persist conversation_id and append assistant message
-        const result = stripMemoryMentions(this.finalResult || '');
+        const rawResult = this.finalResult || this.assistantTexts.join('\n\n') || '';
+        const result = stripMemoryMentions(rawResult);
         if (this.questionId) {
           const qq = db.getQuickQuestion(this.questionId);
           if (qq) {
@@ -215,9 +216,10 @@ ${question}${MEMORY_SUFFIX}`;
 
       logger.info('Quick question finished', { code, questionId: this.questionId, sessionId: this.sessionId });
 
+      const broadcastResult = stripMemoryMentions(this.finalResult || this.assistantTexts.join('\n\n') || '');
       broadcast('qq:finished', {
         questionId: this.questionId,
-        result: stripMemoryMentions(this.finalResult || ''),
+        result: broadcastResult,
         sessionId: this.sessionId,
       });
     });
@@ -252,7 +254,7 @@ ${question}${MEMORY_SUFFIX}`;
       if (Array.isArray(content)) {
         for (const block of content) {
           if (block.type === 'text' && block.text) {
-            this.lastAssistantText = block.text;
+            this.assistantTexts.push(block.text);
           }
           if (block.type === 'tool_use' && block.name) {
             const input = block.input || {};
@@ -278,7 +280,7 @@ ${question}${MEMORY_SUFFIX}`;
     }
 
     if (json.type === 'result') {
-      this.finalResult = json.result || this.lastAssistantText || '';
+      this.finalResult = json.result || this.assistantTexts.join('\n\n') || '';
     }
 
     const sid = json.session_id || json.sessionId;

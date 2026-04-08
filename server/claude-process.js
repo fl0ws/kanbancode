@@ -38,7 +38,8 @@ export class ClaudeProcess extends EventEmitter {
     this.silenceTimer = null;
     this.lineBuffer = '';
     this.sessionId = null;
-    this.finalResult = null; // The final response text from the result event
+    this.finalResult = null; // The result field from the result event
+    this.assistantTexts = []; // All assistant text blocks accumulated
     this.killed = false;
   }
 
@@ -134,7 +135,9 @@ export class ClaudeProcess extends EventEmitter {
         signal,
         sessionId: this.sessionId,
       });
-      this.emit('exit', { code, signal, sessionId: this.sessionId, finalResult: this.finalResult });
+      // Final safety net: if no result event was received, use accumulated assistant text
+      const finalResult = this.finalResult || this.assistantTexts.join('\n\n') || '';
+      this.emit('exit', { code, signal, sessionId: this.sessionId, finalResult });
     });
 
     this._resetSilenceTimer();
@@ -208,9 +211,10 @@ export class ClaudeProcess extends EventEmitter {
       const content = json.message.content;
       if (Array.isArray(content)) {
         for (const block of content) {
-          // Assistant reasoning text → thoughts only
+          // Assistant text → thoughts stream + accumulate for chat fallback
           if (block.type === 'text' && block.text) {
             this._appendOutput(block.text);
+            this.assistantTexts.push(block.text);
           }
           // Intercept AskUserQuestion tool calls
           if (block.type === 'tool_use' && block.name === 'AskUserQuestion' && block.input?.questions) {
@@ -242,8 +246,9 @@ export class ClaudeProcess extends EventEmitter {
 
     // --- Final result (chat response) ---
 
-    if (json.type === 'result' && json.result) {
-      this.finalResult = json.result;
+    if (json.type === 'result') {
+      // Prefer the result field; fall back to accumulated assistant text
+      this.finalResult = json.result || this.assistantTexts.join('\n\n') || '';
     }
 
     // --- Session ID extraction ---
