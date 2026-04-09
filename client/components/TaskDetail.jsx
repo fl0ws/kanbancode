@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useStore } from '../store.js';
 import { fetchOutput, moveTask, stopTask, updateTask, logActivity, archiveTask, deleteTask } from '../api.js';
+import { useAutoResize } from '../hooks/useAutoResize.js';
 import ActivityLog from './ActivityLog.jsx';
 import NeedsInputBanner from './NeedsInputBanner.jsx';
 
@@ -36,6 +37,8 @@ export default function TaskDetail({ taskId }) {
   const [editing, setEditing] = useState(false);
   const [editTitle, setEditTitle] = useState('');
   const [editDesc, setEditDesc] = useState('');
+  const replyRef = useRef(null);
+  const { handleInput: handleReplyResize, resetHeight } = useAutoResize(5);
 
   useEffect(() => {
     fetchOutput(taskId).then(data => {
@@ -77,7 +80,9 @@ export default function TaskDetail({ taskId }) {
     if (!reply.trim()) return;
     await logActivity(taskId, 'user', reply.trim());
     setReply('');
+    resetHeight(replyRef.current);
     await moveTask(taskId, 'claude');
+    setSelectedTask(null);
   }
 
   async function handleArchive() {
@@ -99,93 +104,100 @@ export default function TaskDetail({ taskId }) {
           <span style={{ ...styles.dot, background: color }} />
           <span style={styles.colLabel}>{COLUMN_LABELS[task.column]}</span>
         </div>
-        <button style={styles.closeBtn} onClick={() => setSelectedTask(null)}>x</button>
+        <button style={styles.closeBtn} onClick={() => setSelectedTask(null)} title="Close">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
       </div>
 
-      <div style={styles.topSection}>
-        {editing ? (
-          <div style={styles.editForm}>
-            <input style={styles.editInput} value={editTitle} onChange={e => setEditTitle(e.target.value)} />
-            <textarea style={styles.editTextarea} value={editDesc} onChange={e => setEditDesc(e.target.value)} rows={3} />
-            <div style={styles.editActions}>
-              <button style={styles.smallBtn} onClick={() => setEditing(false)}>Cancel</button>
-              <button style={{ ...styles.smallBtn, ...styles.btnGreen }} onClick={saveEdit}>Save</button>
-            </div>
-          </div>
-        ) : (
-          <div style={styles.taskInfo} onClick={startEdit}>
-            <div style={styles.titleRow}>
-              <h3 style={styles.taskTitle}>{task.title}</h3>
-              <svg style={styles.editIcon} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
-                <path d="m15 5 4 4" />
-              </svg>
-            </div>
-            {task.description && <p style={styles.taskDesc}>{task.description}</p>}
-          </div>
-        )}
+      <div style={styles.body}>
+        {/* Left: task info + actions */}
+        <div style={styles.leftCol}>
+          <div style={styles.leftScroll}>
+            {editing ? (
+              <div style={styles.editForm}>
+                <input style={styles.editInput} value={editTitle} onChange={e => setEditTitle(e.target.value)} />
+                <textarea style={styles.editTextarea} value={editDesc} onChange={e => setEditDesc(e.target.value)} rows={5} />
+                <div style={styles.editActions}>
+                  <button style={styles.smallBtn} onClick={() => setEditing(false)}>Cancel</button>
+                  <button style={{ ...styles.smallBtn, ...styles.btnGreen }} onClick={saveEdit}>Save</button>
+                </div>
+              </div>
+            ) : (
+              <div style={styles.taskInfo} onClick={startEdit}>
+                <div style={styles.titleRow}>
+                  <h3 style={styles.taskTitle}>{task.title}</h3>
+                  <svg style={styles.editIcon} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+                    <path d="m15 5 4 4" />
+                  </svg>
+                </div>
+                {task.description && <p style={styles.taskDesc}>{task.description}</p>}
+              </div>
+            )}
 
-        {task.working_dir && (
-          <div style={styles.meta}>
-            <span style={styles.metaLabel}>Dir:</span>
-            <span style={styles.metaValue}>{task.working_dir}</span>
+            {task.branch && (
+              <div style={styles.meta}>
+                <span style={styles.metaLabel}>Branch:</span>
+                <span style={styles.metaValue}>{task.branch}</span>
+              </div>
+            )}
+
+            {task.needs_input === 1 && !pendingQuestions && <NeedsInputBanner task={task} onStop={handleStop} />}
           </div>
-        )}
-        {task.branch && (
-          <div style={styles.meta}>
-            <span style={styles.metaLabel}>Branch:</span>
-            <span style={styles.metaValue}>{task.branch}</span>
+
+          <div style={styles.quickActions}>
+            {NEXT_COLUMN[task.column] && (
+              <button style={{ ...styles.actionBtn, ...styles.moveBtn }} onClick={() => handleMove(NEXT_COLUMN[task.column])}>
+                Move to {COLUMN_LABELS[NEXT_COLUMN[task.column]]}
+              </button>
+            )}
+            {task.column === 'claude' && (
+              <button style={{ ...styles.actionBtn, ...styles.stopBtn }} onClick={handleStop}>Stop</button>
+            )}
+            <button style={{ ...styles.actionBtn, ...styles.archiveBtn }} onClick={handleArchive}>Archive</button>
+            <button style={{ ...styles.actionBtn, ...styles.deleteBtn }} onClick={handleDelete}>Delete</button>
           </div>
-        )}
+        </div>
 
-        {task.needs_input === 1 && !pendingQuestions && <NeedsInputBanner task={task} onStop={handleStop} />}
-      </div>
+        {/* Right: chat/thoughts/log + reply */}
+        <div style={styles.rightCol}>
+          <ActivityLog
+            activities={task.activity_log || []}
+            liveOutput={liveOutput}
+            isRunning={isRunning}
+            pendingQuestions={pendingQuestions}
+            taskId={taskId}
+          />
 
-      <ActivityLog
-        activities={task.activity_log || []}
-        liveOutput={liveOutput}
-        isRunning={isRunning}
-        pendingQuestions={pendingQuestions}
-        taskId={taskId}
-      />
-
-      {task.column === 'your_turn' && (
-        <form onSubmit={handleReply} style={styles.replyForm}>
-          <div style={styles.replyRow}>
-            <textarea
-              style={styles.replyInput}
-              value={reply}
-              onChange={e => setReply(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  if (reply.trim()) handleReply(e);
-                }
-              }}
-              placeholder="Reply to Claude..."
-              rows={1}
-            />
-            <button type="submit" style={styles.sendBtn} disabled={!reply.trim()}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="22" y1="2" x2="11" y2="13" />
-                <polygon points="22 2 15 22 11 13 2 9 22 2" />
-              </svg>
-            </button>
-          </div>
-        </form>
-      )}
-
-      <div style={styles.quickActions}>
-        {NEXT_COLUMN[task.column] && (
-          <button style={{ ...styles.actionBtn, ...styles.moveBtn }} onClick={() => handleMove(NEXT_COLUMN[task.column])}>
-            Move to {COLUMN_LABELS[NEXT_COLUMN[task.column]]}
-          </button>
-        )}
-        {task.column === 'claude' && (
-          <button style={{ ...styles.actionBtn, ...styles.stopBtn }} onClick={handleStop}>Stop</button>
-        )}
-        <button style={{ ...styles.actionBtn, ...styles.archiveBtn }} onClick={handleArchive}>Archive</button>
-        <button style={{ ...styles.actionBtn, ...styles.deleteBtn }} onClick={handleDelete}>Delete</button>
+          {task.column === 'your_turn' && (
+            <form onSubmit={handleReply} style={styles.replyForm}>
+              <div style={styles.replyRow}>
+                <textarea
+                  ref={replyRef}
+                  style={styles.replyInput}
+                  value={reply}
+                  onChange={e => { setReply(e.target.value); handleReplyResize(e); }}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      if (reply.trim()) handleReply(e);
+                    }
+                  }}
+                  placeholder="Reply to Claude..."
+                  rows={1}
+                />
+                <button type="submit" style={styles.sendBtn} disabled={!reply.trim()}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="22" y1="2" x2="11" y2="13" />
+                    <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                  </svg>
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
       </div>
     </div>
     </div>
@@ -203,8 +215,8 @@ const styles = {
     zIndex: 100,
   },
   panel: {
-    width: 800,
-    maxWidth: '90vw',
+    width: 960,
+    maxWidth: '92vw',
     height: '85vh',
     background: 'var(--bg-surface)',
     borderRadius: 12,
@@ -218,7 +230,6 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: '12px 16px',
-    borderBottom: '1px solid var(--border)',
   },
   colIndicator: {
     display: 'flex',
@@ -236,17 +247,45 @@ const styles = {
     color: 'var(--text-primary)',
   },
   closeBtn: {
-    background: 'none',
-    border: 'none',
-    color: 'var(--text-muted)',
-    fontSize: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    border: '1px solid var(--border)',
+    background: 'var(--bg-elevated)',
+    color: 'var(--text-secondary)',
     cursor: 'pointer',
-    padding: '4px 8px',
-  },
-  topSection: {
-    padding: '12px 16px',
-    borderBottom: '1px solid var(--border)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
     flexShrink: 0,
+    transition: 'background 0.15s',
+  },
+  body: {
+    display: 'flex',
+    flex: 1,
+    minHeight: 0,
+    overflow: 'hidden',
+  },
+  leftCol: {
+    width: 300,
+    flexShrink: 0,
+    display: 'flex',
+    flexDirection: 'column',
+    overflow: 'hidden',
+  },
+  leftScroll: {
+    flex: 1,
+    overflowY: 'auto',
+    padding: 16,
+  },
+  rightCol: {
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
+    minWidth: 0,
+    overflow: 'hidden',
+    padding: '12px 16px',
+    gap: 8,
   },
   taskInfo: {
     cursor: 'pointer',
@@ -318,8 +357,7 @@ const styles = {
     justifyContent: 'flex-end',
   },
   replyForm: {
-    padding: '10px 16px',
-    borderTop: '1px solid var(--border)',
+    flexShrink: 0,
     background: 'var(--bg-surface)',
   },
   replyRow: {
@@ -341,7 +379,7 @@ const styles = {
     resize: 'none',
     fontFamily: 'inherit',
     outline: 'none',
-    lineHeight: 1.4,
+    lineHeight: '20px',
     maxHeight: 100,
     overflowY: 'auto',
   },
@@ -360,10 +398,10 @@ const styles = {
   },
   quickActions: {
     display: 'flex',
+    flexDirection: 'column',
     gap: 6,
     padding: '12px 16px',
-    borderTop: '1px solid var(--border)',
-    flexWrap: 'wrap',
+    flexShrink: 0,
   },
   actionBtn: {
     padding: '5px 10px',
@@ -392,7 +430,6 @@ const styles = {
     background: 'var(--red-alpha, rgba(248,81,73,0.1))',
     borderColor: 'var(--red)',
     color: 'var(--red)',
-    marginLeft: 'auto',
   },
   smallBtn: {
     padding: '4px 10px',

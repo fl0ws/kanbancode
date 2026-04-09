@@ -73,6 +73,7 @@ const styles = {
     cursor: 'pointer',
     transition: 'border-color 0.15s, box-shadow 0.15s',
     boxShadow: 'var(--shadow-xs)',
+    overflow: 'hidden',
   },
   titleRow: {
     display: 'flex',
@@ -90,10 +91,14 @@ const styles = {
     fontWeight: 500,
     color: 'var(--text-primary)',
     lineHeight: 1.3,
+    overflowWrap: 'break-word',
+    wordBreak: 'break-word',
   },
   desc: {
     fontSize: 12,
     color: 'var(--text-tertiary)',
+    overflowWrap: 'break-word',
+    wordBreak: 'break-word',
     marginTop: 6,
     lineHeight: 1.4,
   },

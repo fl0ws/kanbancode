@@ -61,42 +61,59 @@ export function useWebSocket() {
       const s = store.getState();
       const activeProjectId = s.activeProjectId;
 
+      // Helper: check if a task belongs to the active project
+      const isActiveProject = (task) => task?.project_id === activeProjectId;
+      const isTaskInStore = (taskId) => !!s.tasks[taskId];
+
       switch (data.event) {
         case 'task:created':
-          // Only add if task belongs to active project
-          if (data.task.project_id === activeProjectId) {
+          if (isActiveProject(data.task)) {
             s.addTask(data.task);
           }
           break;
         case 'task:updated':
-          s.updateTask(data.task);
+          if (isActiveProject(data.task)) {
+            s.updateTask(data.task);
+          }
           break;
         case 'task:moved':
-          s.moveTask(data.task, data.from, data.to);
-          if (data.to === 'claude') {
-            s.clearOutput(data.task.id);
-            s.clearPendingQuestions(data.task.id);
+          if (isActiveProject(data.task)) {
+            s.moveTask(data.task, data.from, data.to);
+            if (data.to === 'claude') {
+              s.clearOutput(data.task.id);
+              s.clearPendingQuestions(data.task.id);
+            }
           }
           break;
         case 'task:deleted':
-          s.deleteTask(data.id);
+          if (isTaskInStore(data.id)) {
+            s.deleteTask(data.id);
+          }
           break;
         case 'task:archived':
-          s.archiveTask(data.id);
+          if (isTaskInStore(data.id)) {
+            s.archiveTask(data.id);
+          }
           break;
         case 'task:unarchived':
-          if (data.task.project_id === activeProjectId) {
+          if (isActiveProject(data.task)) {
             s.unarchiveTask(data.task);
           }
           break;
         case 'task:activity':
-          s.addActivity(data.taskId, data.entry);
+          if (isTaskInStore(data.taskId)) {
+            s.addActivity(data.taskId, data.entry);
+          }
           break;
         case 'task:output':
-          s.appendOutput(data.taskId, data.text);
+          if (isTaskInStore(data.taskId)) {
+            s.appendOutput(data.taskId, data.text);
+          }
           break;
         case 'task:questions':
-          s.setPendingQuestions(data.taskId, data.questions);
+          if (isTaskInStore(data.taskId)) {
+            s.setPendingQuestions(data.taskId, data.questions);
+          }
           break;
         case 'tasks:reordered':
           s.reorderColumn(data.column, data.ids);

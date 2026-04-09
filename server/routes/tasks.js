@@ -47,19 +47,13 @@ router.get('/api/tasks/:id', (req, res) => {
 
 // Create task
 router.post('/api/tasks', (req, res) => {
-  const { title, description, working_dir, project_id } = req.body;
+  const { title, description, project_id } = req.body;
   if (!title || !title.trim()) {
     return res.status(400).json({ error: 'Title is required' });
   }
   const id = randomUUID();
   const pid = project_id || 'default';
-  // Inherit working_dir from project if not provided
-  let taskDir = working_dir || null;
-  if (!taskDir) {
-    const project = db.getProject(pid);
-    if (project?.working_dir) taskDir = project.working_dir;
-  }
-  const task = db.createTask(id, title.trim(), description || '', taskDir, pid);
+  const task = db.createTask(id, title.trim(), description || '', null, pid);
   db.addActivity(id, 'system', 'Task created');
   const freshTask = db.getTask(id);
   broadcast('task:created', { task: freshTask });

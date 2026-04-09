@@ -1,4 +1,7 @@
 import { ClaudeProcess } from './claude-process.js';
+import { existsSync } from 'fs';
+import { resolve } from 'path';
+import { homedir } from 'os';
 import { logger } from './logger.js';
 import { broadcast } from './ws.js';
 import * as db from './db.js';
@@ -88,11 +91,28 @@ export class WorkerPool {
       return { error: 'Task is already queued' };
     }
 
-    const prompt = this._buildPrompt(task);
+    // Get working_dir from project, not task
+    const project = db.getProject(task.project_id);
+    const workingDir = project?.working_dir || null;
+    if (!workingDir) {
+      logger.warn('Task has no project working directory', { taskId });
+      return { error: 'Project has no working directory set.' };
+    }
+
+    // Validate the directory exists
+    let resolvedDir = workingDir;
+    if (resolvedDir.startsWith('~')) resolvedDir = resolvedDir.replace(/^~/, homedir());
+    resolvedDir = resolve(resolvedDir);
+    if (!existsSync(resolvedDir)) {
+      logger.warn('Project working directory does not exist', { taskId, workingDir: resolvedDir });
+      return { error: `Project directory does not exist: ${resolvedDir}` };
+    }
+
+    const prompt = this._buildPrompt(task, workingDir);
     const entry = {
       taskId,
       prompt,
-      workingDir: task.working_dir,
+      workingDir,
       conversationId: task.conversation_id,
     };
 
@@ -177,6 +197,14 @@ export class WorkerPool {
       broadcast('task:output', { taskId, text });
     });
 
+    proc.on('chat_message', (text) => {
+      const cleaned = stripMemoryMentions(text.trim());
+      if (cleaned) {
+        const entry = db.addActivity(taskId, 'claude', cleaned);
+        broadcast('task:activity', { taskId, entry });
+      }
+    });
+
     proc.on('needs_input', (pendingPrompt) => {
       const task = db.updateTaskInput(taskId, true, pendingPrompt);
       broadcast('task:updated', { task });
@@ -208,12 +236,8 @@ export class WorkerPool {
         db.setConversationId(taskId, sessionId);
       }
 
-      // Save only the final result as a chat message, strip memory mentions
-      const chatResponse = stripMemoryMentions((finalResult || '').trim());
-      if (chatResponse) {
-        const entry = db.addActivity(taskId, 'claude', chatResponse);
-        broadcast('task:activity', { taskId, entry });
-      }
+      // Individual chat messages were already saved via 'chat_message' events.
+      // No need to save the accumulated result again.
 
       const task = db.getTask(taskId);
       // Only auto-move if still in claude column (stop handler may have already moved it)
@@ -235,14 +259,12 @@ export class WorkerPool {
     this._broadcastStatus();
   }
 
-  _buildPrompt(task) {
+  _buildPrompt(task, workingDir) {
     const desc = task.description ? `\n\nDescription:\n${task.description}` : '';
     const activities = db.getActivities(task.id);
     const lastUserMsg = [...activities].reverse().find(a => a.author === 'user');
 
     if (task.conversation_id) {
-      // Resuming with --resume: Claude already has the full prior conversation.
-      // Just send the user's reply as the prompt — no boilerplate.
       const prompt = (lastUserMsg
         ? lastUserMsg.message
         : 'Continue where you left off.') + MEMORY_INSTRUCTION;
@@ -251,24 +273,20 @@ export class WorkerPool {
       return prompt;
     }
 
-    // No conversation_id — fresh session. But there may be user replies
-    // from previous runs where session_id extraction failed.
     if (lastUserMsg) {
-      // User's reply IS the prompt. Task context is secondary.
       const prompt = `${lastUserMsg.message}
 
-(Context: this is a follow-up on task "${task.title}" in ${task.working_dir || 'unset directory'})${MEMORY_INSTRUCTION}`;
+(Context: this is a follow-up on task "${task.title}" in ${workingDir})${MEMORY_INSTRUCTION}`;
 
       logger.info('Built reply prompt', { taskId: task.id, prompt });
       return prompt;
     }
 
-    // First run, no replies yet — include system prompt instructions
     const systemPrompt = db.getSetting('systemPrompt') || DEFAULT_SYSTEM_PROMPT;
 
     const prompt = `# Task: ${task.title}${desc}
 
-Working directory: ${task.working_dir || 'not set'}
+Working directory: ${workingDir}
 
 ## Instructions
 ${systemPrompt}${MEMORY_INSTRUCTION}`;

@@ -37,6 +37,11 @@ tasksRouter.onMoveToClaudeCallback = (taskId, task) => {
   const result = pool.enqueue(taskId, task);
   if (result.error) {
     logger.warn('Failed to enqueue task', { taskId, error: result.error });
+    // Move the task back to where it was and inform the user
+    const moved = db.moveTask(taskId, 'your_turn');
+    db.addActivity(taskId, 'system', result.error);
+    broadcast('task:moved', { task: moved, from: 'claude', to: 'your_turn' });
+    broadcast('task:activity', { taskId, entry: db.getActivities(taskId).pop() });
   }
 };
 

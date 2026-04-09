@@ -211,10 +211,11 @@ export class ClaudeProcess extends EventEmitter {
       const content = json.message.content;
       if (Array.isArray(content)) {
         for (const block of content) {
-          // Assistant text → thoughts stream + accumulate for chat fallback
+          // Assistant text → thoughts stream + emit as chat message
           if (block.type === 'text' && block.text) {
             this._appendOutput(block.text);
             this.assistantTexts.push(block.text);
+            this.emit('chat_message', block.text);
           }
           // Intercept AskUserQuestion tool calls
           if (block.type === 'tool_use' && block.name === 'AskUserQuestion' && block.input?.questions) {

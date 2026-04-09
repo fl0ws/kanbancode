@@ -222,8 +222,9 @@ function DreamingIndicator() {
 
 function PoolBadge({ status }) {
   const [open, setOpen] = useState(false);
+  const [runningDetails, setRunningDetails] = useState([]);
   const ref = useRef(null);
-  const tasks = useStore(s => s.tasks);
+  const projects = useStore(s => s.projects);
 
   useEffect(() => {
     if (!open) return;
@@ -234,11 +235,26 @@ function PoolBadge({ status }) {
     return () => document.removeEventListener('mousedown', handle);
   }, [open]);
 
+  // Fetch full task details when dropdown opens
+  useEffect(() => {
+    if (open && status.running?.length > 0) {
+      Promise.all(
+        status.running.map(id =>
+          fetch(`/api/tasks/${id}`).then(r => r.ok ? r.json() : null).catch(() => null)
+        )
+      ).then(results => setRunningDetails(results.filter(Boolean)));
+    }
+  }, [open, status.running]);
+
   if (status.maxConcurrency === null) return null;
 
   const running = status.running?.length || 0;
   const queued = status.queued?.length || 0;
-  const runningTasks = (status.running || []).map(id => tasks[id]).filter(Boolean);
+
+  function getProjectName(projectId) {
+    const p = projects.find(p => p.id === projectId);
+    return p?.name || '';
+  }
 
   return (
     <span ref={ref} style={{ position: 'relative' }}>
@@ -249,13 +265,18 @@ function PoolBadge({ status }) {
         {running}/{status.maxConcurrency} running
         {queued > 0 && ` | ${queued} queued`}
       </span>
-      {open && runningTasks.length > 0 && (
+      {open && runningDetails.length > 0 && (
         <div style={styles.poolDropdown}>
           <div style={styles.poolDropdownHeader}>Running Tasks</div>
-          {runningTasks.map(task => (
+          {runningDetails.map(task => (
             <div key={task.id} style={styles.poolDropdownItem}>
               <span style={styles.poolDropdownDot} />
-              <span style={styles.poolDropdownTitle}>{task.title}</span>
+              <div style={styles.poolDropdownInfo}>
+                <span style={styles.poolDropdownTitle}>{task.title}</span>
+                {task.project_id && (
+                  <span style={styles.poolDropdownProject}>{getProjectName(task.project_id)}</span>
+                )}
+              </div>
             </div>
           ))}
         </div>
@@ -441,7 +462,7 @@ const styles = {
   },
   poolDropdownItem: {
     display: 'flex',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: 8,
     padding: '6px 12px',
     fontSize: 13,
@@ -453,11 +474,22 @@ const styles = {
     borderRadius: '50%',
     background: 'var(--green)',
     flexShrink: 0,
+    marginTop: 6,
+  },
+  poolDropdownInfo: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 1,
+    minWidth: 0,
   },
   poolDropdownTitle: {
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
+  },
+  poolDropdownProject: {
+    fontSize: 11,
+    color: 'var(--text-muted)',
   },
   multiBar: {
     position: 'fixed',

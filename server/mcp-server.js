@@ -51,17 +51,16 @@ server.tool(
 // Claim task
 server.tool(
   'claim_task',
-  'Claim a task by setting working directory, branch, and session info',
+  'Claim a task by setting branch and session info',
   {
     task_id: z.string().describe('The task ID'),
-    working_dir: z.string().optional().describe('Working directory path'),
     branch: z.string().optional().describe('Git branch name'),
     session_id: z.string().optional().describe('Claude session ID'),
   },
-  async ({ task_id, working_dir, branch, session_id }) => {
+  async ({ task_id, branch, session_id }) => {
     const result = await apiCall(`/api/tasks/${task_id}/claim`, {
       method: 'POST',
-      body: JSON.stringify({ working_dir, branch, session_id }),
+      body: JSON.stringify({ branch, session_id }),
     });
     return textResult(result);
   }

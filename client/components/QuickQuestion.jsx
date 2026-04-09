@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useStore } from '../store.js';
 import { askQuestion, replyQuestion, stopQuestion, resetQuestion, listQuestions, loadQuestion, getQuestion, deleteQuestion, qqStatus } from '../api.js';
 import { marked } from 'marked';
+import { useAutoResize } from '../hooks/useAutoResize.js';
 
 marked.setOptions({ breaks: false, gfm: true });
 
@@ -29,6 +30,7 @@ export default function QuickQuestion({ onClose }) {
   const [isProcessing, setIsProcessing] = useState(false);
   const scrollRef = useRef(null);
   const inputRef = useRef(null);
+  const { handleInput: handleInputResize, resetHeight } = useAutoResize(5);
   const idlePhraseRef = useRef(0);
   const idleTimerRef = useRef(null);
 
@@ -116,6 +118,7 @@ export default function QuickQuestion({ onClose }) {
 
     const question = input.trim();
     setInput('');
+    resetHeight(inputRef.current);
     setMessages(prev => [...prev, { role: 'user', text: question }]);
     setIsProcessing(true);
 
@@ -220,7 +223,11 @@ export default function QuickQuestion({ onClose }) {
                 <span style={styles.headerProject}>{activeProject.name}</span>
               )}
             </div>
-            <button style={styles.closeBtn} onClick={onClose}>x</button>
+            <button style={styles.closeBtn} onClick={onClose} title="Close">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
           </div>
 
           <div ref={scrollRef} style={styles.chatArea}>
@@ -270,14 +277,21 @@ export default function QuickQuestion({ onClose }) {
 
           <form onSubmit={handleSubmit} style={styles.inputArea}>
             <div style={styles.inputRow}>
-              <input
+              <textarea
                 ref={inputRef}
                 style={styles.input}
                 value={input}
-                onChange={e => setInput(e.target.value)}
+                onChange={e => { setInput(e.target.value); handleInputResize(e); }}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    if (input.trim() && !isProcessing) handleSubmit(e);
+                  }
+                }}
                 placeholder={activeQId ? 'Ask a follow-up...' : 'Ask a question about the codebase...'}
                 autoFocus
                 disabled={isProcessing}
+                rows={1}
               />
               {isProcessing ? (
                 <button type="button" style={styles.stopBtn} onClick={handleStop}>Stop</button>
@@ -444,12 +458,18 @@ const styles = {
     borderRadius: 4,
   },
   closeBtn: {
-    background: 'none',
-    border: 'none',
-    color: 'var(--text-muted)',
-    fontSize: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    border: '1px solid var(--border)',
+    background: 'var(--bg-elevated)',
+    color: 'var(--text-secondary)',
     cursor: 'pointer',
-    padding: '4px 8px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+    transition: 'background 0.15s',
   },
   chatArea: {
     flex: 1,
@@ -583,6 +603,10 @@ const styles = {
     fontSize: 13,
     outline: 'none',
     fontFamily: 'inherit',
+    resize: 'none',
+    lineHeight: '20px',
+    maxHeight: 100,
+    overflowY: 'auto',
   },
   sendBtn: {
     width: 32,
