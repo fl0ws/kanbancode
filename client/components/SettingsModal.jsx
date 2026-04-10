@@ -5,6 +5,8 @@ import { useStore } from '../store.js';
 export default function SettingsModal({ onClose, zoom, setZoom }) {
   const poolStatus = useStore(s => s.poolStatus);
   const setPoolStatus = useStore(s => s.setPoolStatus);
+  const notificationSoundEnabled = useStore(s => s.notificationSoundEnabled);
+  const setNotificationSoundEnabled = useStore(s => s.setNotificationSoundEnabled);
   const [maxConcurrency, setMaxConcurrency] = useState(poolStatus.maxConcurrency || 3);
   const [configDir, setConfigDir] = useState('');
   const [systemPrompt, setSystemPrompt] = useState('');
@@ -132,6 +134,21 @@ Complete the task described above. When finished, provide a summary of what you 
               Scales the entire interface. Useful for high-DPI screens or accessibility.
             </span>
           </label>
+
+          <div style={styles.toggleRow}>
+            <label style={styles.toggleLabel}>
+              <input
+                type="checkbox"
+                checked={notificationSoundEnabled}
+                onChange={e => setNotificationSoundEnabled(e.target.checked)}
+                style={styles.checkbox}
+              />
+              <span style={styles.toggleText}>Notification Sound</span>
+            </label>
+            <span style={styles.toggleHint}>
+              Play a chime when Claude completes a task or needs your input
+            </span>
+          </div>
 
           {message && (
             <p style={{ ...styles.message, color: message.type === 'error' ? 'var(--red)' : 'var(--green)' }}>
@@ -285,5 +302,36 @@ const styles = {
   btnPrimary: {
     background: 'linear-gradient(135deg, var(--green), var(--green-dark))',
     color: 'var(--text-on-accent)',
+  },
+  toggleRow: {
+    marginBottom: 16,
+    padding: '12px 14px',
+    background: 'var(--bg-sidebar)',
+    borderRadius: 'var(--radius-md)',
+  },
+  toggleLabel: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+    cursor: 'pointer',
+    marginBottom: 4,
+  },
+  checkbox: {
+    width: 16,
+    height: 16,
+    accentColor: 'var(--green)',
+    cursor: 'pointer',
+  },
+  toggleText: {
+    fontSize: 13,
+    fontWeight: 500,
+    color: 'var(--text-primary)',
+  },
+  toggleHint: {
+    display: 'block',
+    fontSize: 11,
+    color: 'var(--text-muted)',
+    marginLeft: 24,
+    lineHeight: 1.4,
   },
 };

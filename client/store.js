@@ -31,6 +31,8 @@ export const useStore = create((set, get) => ({
   isDreaming: false,
   projects: [],
   activeProjectId: localStorage.getItem('kanban_active_project') || null,
+  notifications: [],
+  notificationSoundEnabled: localStorage.getItem('kanban_notification_sound') !== 'false',
 
   setProjects(projects) {
     set({ projects });
@@ -210,6 +212,36 @@ export const useStore = create((set, get) => ({
         tasks: { ...state.tasks, [taskId]: task },
       };
     });
+  },
+
+  addNotification(notification) {
+    set(state => ({
+      notifications: [
+        { id: Date.now() + Math.random(), read: false, timestamp: Date.now(), ...notification },
+        ...state.notifications,
+      ].slice(0, 50), // keep last 50
+    }));
+  },
+
+  markNotificationRead(id) {
+    set(state => ({
+      notifications: state.notifications.map(n => n.id === id ? { ...n, read: true } : n),
+    }));
+  },
+
+  markAllNotificationsRead() {
+    set(state => ({
+      notifications: state.notifications.map(n => ({ ...n, read: true })),
+    }));
+  },
+
+  clearNotifications() {
+    set({ notifications: [] });
+  },
+
+  setNotificationSoundEnabled(enabled) {
+    localStorage.setItem('kanban_notification_sound', String(enabled));
+    set({ notificationSoundEnabled: enabled });
   },
 
   addActivity(taskId, entry) {

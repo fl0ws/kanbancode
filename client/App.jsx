@@ -12,6 +12,7 @@ import SettingsModal from './components/SettingsModal.jsx';
 import ManageProjectsModal from './components/ManageProjectsModal.jsx';
 import QuickQuestion from './components/QuickQuestion.jsx';
 import ManageCommandsModal from './components/ManageCommandsModal.jsx';
+import NotificationBell from './components/NotificationBell.jsx';
 
 function useZoom() {
   const [zoom, setZoom] = useState(() => Number(localStorage.getItem('kanban_zoom')) || 100);
@@ -138,6 +139,7 @@ export default function App() {
             />
           </div>
           <div style={styles.topBarRight}>
+            <NotificationBell />
             <button style={styles.iconBtn} onClick={toggleTheme} title={theme === 'light' ? 'Dark mode' : 'Light mode'}>
               <span className="material-symbols-outlined" style={{ fontSize: 20 }}>{theme === 'light' ? 'dark_mode' : 'light_mode'}</span>
             </button>

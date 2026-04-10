@@ -2,6 +2,29 @@ import { useEffect, useRef } from 'react';
 import { useStore } from '../store.js';
 import { fetchTasks, fetchProjects } from '../api.js';
 
+// Notification sound — short pleasant chime via Web Audio API
+let audioCtx = null;
+function playNotificationSound() {
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const now = audioCtx.currentTime;
+
+    // Two-tone chime: C5 then E5
+    [523.25, 659.25].forEach((freq, i) => {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.15, now + i * 0.12);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.12 + 0.4);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(now + i * 0.12);
+      osc.stop(now + i * 0.12 + 0.4);
+    });
+  } catch {}
+}
+
 export function useWebSocket() {
   const wsRef = useRef(null);
   const reconnectTimeout = useRef(null);
@@ -73,7 +96,18 @@ export function useWebSocket() {
           break;
         case 'task:updated':
           if (isActiveProject(data.task)) {
+            const prev = s.tasks[data.task.id];
             s.updateTask(data.task);
+            // Notify: needs input flag changed to true
+            if (data.task.needs_input === 1 && prev && prev.needs_input !== 1) {
+              s.addNotification({
+                type: 'needs_input',
+                title: data.task.title,
+                message: 'Claude needs your input',
+                taskId: data.task.id,
+              });
+              if (s.notificationSoundEnabled) playNotificationSound();
+            }
           }
           break;
         case 'task:moved':
@@ -82,6 +116,25 @@ export function useWebSocket() {
             if (data.to === 'claude') {
               s.clearOutput(data.task.id);
               s.clearPendingQuestions(data.task.id);
+            }
+            // Notify: Claude finished → moved to your_turn
+            if (data.from === 'claude' && data.to === 'your_turn') {
+              s.addNotification({
+                type: 'completed',
+                title: data.task.title,
+                message: 'Claude finished — your turn to review',
+                taskId: data.task.id,
+              });
+              if (s.notificationSoundEnabled) playNotificationSound();
+            }
+            // Notify: moved to done
+            if (data.to === 'done' && data.from !== 'done') {
+              s.addNotification({
+                type: 'done',
+                title: data.task.title,
+                message: 'Task completed',
+                taskId: data.task.id,
+              });
             }
           }
           break;
