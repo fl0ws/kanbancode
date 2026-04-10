@@ -4,183 +4,228 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Claude Code Kanban</title>
+  <!-- Google Fonts: Manrope (headlines) + Inter (body) -->
+  <link href="https://fonts.googleapis.com" rel="preconnect" />
+  <link crossorigin href="https://fonts.gstatic.com" rel="preconnect" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700;800;900&display=swap" rel="stylesheet" />
+  <!-- Material Symbols -->
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
   <style>
     :root {
-      /* Backgrounds */
-      --bg-page: #FAFAFA;
-      --bg-surface: #FFFFFF;
-      --bg-input: #F5F5F5;
-      --bg-elevated: #FAFAFA;
-      --bg-hover: #EEEEEE;
+      /* ── Surface Hierarchy (The Quiet Architect) ── */
+      --bg-page: #f8f9fa;              /* surface — base canvas */
+      --bg-surface: #ffffff;            /* surface-container-lowest — cards, primary focus */
+      --bg-sidebar: #f1f4f6;           /* surface-container-low — sidebar, secondary */
+      --bg-input: #f1f4f6;             /* surface-container-low — field backgrounds */
+      --bg-elevated: #eaeff1;          /* surface-container — elevated areas */
+      --bg-hover: #e3e9ec;             /* surface-container-high — hover states */
+      --bg-highest: #dbe4e7;           /* surface-container-highest — badges, tracks */
 
-      /* Text */
-      --text-primary: #212121;
-      --text-secondary: #424242;
-      --text-tertiary: #757575;
-      --text-muted: #9E9E9E;
-      --text-on-accent: #fff;
+      /* ── Text ── */
+      --text-primary: #2b3437;         /* on-surface */
+      --text-secondary: #586064;       /* on-surface-variant */
+      --text-tertiary: #737c7f;        /* outline */
+      --text-muted: #abb3b7;           /* outline-variant */
+      --text-on-accent: #e9fbff;       /* on-primary */
 
-      /* Borders */
-      --border: #E0E0E0;
-      --border-light: #EEEEEE;
+      /* ── Borders — "ghost borders" at 15% opacity ── */
+      --border: rgba(171, 179, 183, 0.15);         /* outline-variant at 15% */
+      --border-light: rgba(171, 179, 183, 0.10);   /* even subtler */
 
-      /* Shadows */
-      --shadow-xs: 0 1px 2px rgba(0,0,0,0.06);
-      --shadow-sm: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.08);
-      --shadow-md: 0 2px 4px rgba(0,0,0,0.1);
-      --shadow-lg: 0 8px 32px rgba(0,0,0,0.18);
-      --shadow-dropdown: 0 8px 24px rgba(0,0,0,0.12);
-      --overlay: rgba(0,0,0,0.32);
+      /* ── Shadows — ambient, diffused ── */
+      --shadow-xs: none;
+      --shadow-sm: 0px 2px 8px rgba(43, 52, 55, 0.04);
+      --shadow-md: 0px 4px 16px rgba(43, 52, 55, 0.05);
+      --shadow-lg: 0px 12px 32px rgba(43, 52, 55, 0.06);
+      --shadow-dropdown: 0px 8px 24px rgba(43, 52, 55, 0.08);
+      --overlay: rgba(43, 52, 55, 0.20);
 
-      /* Accent: Green */
-      --green: #4CAF50;
-      --green-dark: #43A047;
-      --green-bg: #E8F5E9;
+      /* ── Primary: Sage/Teal ── */
+      --green: #466369;                /* primary */
+      --green-dark: #3a575d;           /* primary-dim */
+      --green-bg: #c9e8ef;             /* primary-container */
 
-      /* Accent: Purple */
-      --purple: #7C4DFF;
-      --purple-bg: #EDE7F6;
-      --purple-light-bg: #F3E5F5;
-      --purple-border: #CE93D8;
+      /* ── Claude: Muted purple ── */
+      --purple: #7c5cbf;
+      --purple-bg: #ede7f8;
+      --purple-light-bg: #f5f0ff;
+      --purple-border: rgba(124, 92, 191, 0.15);
 
-      /* Accent: Blue */
-      --blue: #1976D2;
-      --blue-dark: #1565C0;
-      --blue-bg: #E3F2FD;
-      --blue-border: #BBDEFB;
-      --blue-light: #90CAF9;
+      /* ── Accent: Blue ── */
+      --blue: #466369;                 /* reuse primary for consistency */
+      --blue-dark: #3a575d;
+      --blue-bg: #c9e8ef;
+      --blue-border: rgba(70, 99, 105, 0.15);
+      --blue-light: #bbdae1;
 
-      /* Accent: Orange */
-      --orange: #FF9800;
-      --orange-dark: #F57C00;
-      --orange-bg: #FFF3E0;
+      /* ── Accent: Orange/Attention ── */
+      --orange: #b8860b;
+      --orange-dark: #9a7209;
+      --orange-bg: #fdf3dc;
 
-      /* Accent: Red */
-      --red: #E53935;
-      --red-alpha: #E5393544;
+      /* ── Accent: Red/Error ── */
+      --red: #9f403d;
+      --red-alpha: rgba(159, 64, 61, 0.12);
 
-      /* Accent: Yellow */
-      --yellow: #FFC107;
-      --yellow-dark: #F57F17;
-      --yellow-border: #FFE082;
-      --yellow-bg: #FFF8E1;
-      --yellow-light-bg: #FFF9C4;
+      /* ── Accent: Yellow ── */
+      --yellow: #b8860b;
+      --yellow-dark: #9a7209;
+      --yellow-border: rgba(184, 134, 11, 0.15);
+      --yellow-bg: #fdf3dc;
+      --yellow-light-bg: #fef8ed;
 
-      /* Scrollbar */
-      --scrollbar-thumb: #BDBDBD;
-      --scrollbar-hover: #9E9E9E;
+      /* ── Tertiary: Sage green ── */
+      --tertiary: #456650;
+      --tertiary-container: #d4fadd;
 
-      /* Misc */
-      --log-dot: #BDBDBD;
-      --card-selected-border: #2d333b;
+      /* ── Scrollbar ── */
+      --scrollbar-thumb: #abb3b7;
+      --scrollbar-hover: #737c7f;
+
+      /* ── Misc ── */
+      --log-dot: #abb3b7;
+      --card-selected-border: #466369;
+
+      /* ── Sidebar width ── */
+      --sidebar-width: 240px;
+
+      /* ── Typography ── */
+      --font-headline: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+      /* ── Radii ── */
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 12px;
+      --radius-xl: 16px;
     }
 
     html.dark {
-      /* Backgrounds */
-      --bg-page: #121212;
-      --bg-surface: #1e1e1e;
-      --bg-input: #2a2a2a;
-      --bg-elevated: #252525;
-      --bg-hover: #333333;
+      /* ── Surface Hierarchy (Dark) ── */
+      --bg-page: #111314;
+      --bg-surface: #1a1d1e;
+      --bg-sidebar: #151819;
+      --bg-input: #1e2224;
+      --bg-elevated: #222628;
+      --bg-hover: #2a2f31;
+      --bg-highest: #333839;
 
-      /* Text */
-      --text-primary: #e0e0e0;
-      --text-secondary: #bdbdbd;
-      --text-tertiary: #9e9e9e;
-      --text-muted: #757575;
-      --text-on-accent: #fff;
+      /* ── Text ── */
+      --text-primary: #e3e9ec;
+      --text-secondary: #abb3b7;
+      --text-tertiary: #737c7f;
+      --text-muted: #586064;
+      --text-on-accent: #e9fbff;
 
-      /* Borders */
-      --border: #383838;
-      --border-light: #2a2a2a;
+      /* ── Borders ── */
+      --border: rgba(171, 179, 183, 0.10);
+      --border-light: rgba(171, 179, 183, 0.06);
 
-      /* Shadows */
-      --shadow-xs: 0 1px 2px rgba(0,0,0,0.2);
-      --shadow-sm: 0 1px 3px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.2);
-      --shadow-md: 0 2px 4px rgba(0,0,0,0.3);
-      --shadow-lg: 0 8px 32px rgba(0,0,0,0.4);
-      --shadow-dropdown: 0 8px 24px rgba(0,0,0,0.3);
-      --overlay: rgba(0,0,0,0.6);
+      /* ── Shadows ── */
+      --shadow-xs: none;
+      --shadow-sm: 0px 2px 8px rgba(0, 0, 0, 0.2);
+      --shadow-md: 0px 4px 16px rgba(0, 0, 0, 0.25);
+      --shadow-lg: 0px 12px 32px rgba(0, 0, 0, 0.3);
+      --shadow-dropdown: 0px 8px 24px rgba(0, 0, 0, 0.3);
+      --overlay: rgba(0, 0, 0, 0.5);
 
-      /* Accent: Green */
-      --green: #4CAF50;
-      --green-dark: #43A047;
-      --green-bg: #1b2e1b;
+      /* ── Primary ── */
+      --green: #7ba3ab;
+      --green-dark: #6a929a;
+      --green-bg: #1a2e32;
 
-      /* Accent: Purple */
-      --purple: #9C7CFF;
+      /* ── Claude ── */
+      --purple: #a08bc0;
       --purple-bg: #2a1f3e;
-      --purple-light-bg: #2e1f3a;
-      --purple-border: #6a3d7a;
+      --purple-light-bg: #241c33;
+      --purple-border: rgba(160, 139, 192, 0.15);
 
-      /* Accent: Blue */
-      --blue: #1976D2;
-      --blue-dark: #1565C0;
-      --blue-bg: #152535;
-      --blue-border: #1a4a6e;
-      --blue-light: #5c9ed6;
+      /* ── Blue (= Primary) ── */
+      --blue: #7ba3ab;
+      --blue-dark: #6a929a;
+      --blue-bg: #1a2e32;
+      --blue-border: rgba(123, 163, 171, 0.15);
+      --blue-light: #5a8a92;
 
-      /* Accent: Orange */
-      --orange: #FFA726;
-      --orange-dark: #FB8C00;
-      --orange-bg: #2e2215;
+      /* ── Orange ── */
+      --orange: #d4a843;
+      --orange-dark: #c49a35;
+      --orange-bg: #2e2615;
 
-      /* Accent: Red */
-      --red: #EF5350;
-      --red-alpha: #EF535066;
+      /* ── Red ── */
+      --red: #d06b68;
+      --red-alpha: rgba(208, 107, 104, 0.15);
 
-      /* Accent: Yellow */
-      --yellow: #FFD54F;
-      --yellow-dark: #FBC02D;
-      --yellow-border: #6a5a2a;
-      --yellow-bg: #2e2a15;
-      --yellow-light-bg: #3a3520;
+      /* ── Yellow ── */
+      --yellow: #d4a843;
+      --yellow-dark: #c49a35;
+      --yellow-border: rgba(212, 168, 67, 0.15);
+      --yellow-bg: #2e2615;
+      --yellow-light-bg: #2a2310;
 
-      /* Scrollbar */
-      --scrollbar-thumb: #555;
-      --scrollbar-hover: #777;
+      /* ── Tertiary ── */
+      --tertiary: #6a9b7e;
+      --tertiary-container: #1b2e22;
 
-      /* Misc */
+      /* ── Scrollbar ── */
+      --scrollbar-thumb: #444;
+      --scrollbar-hover: #666;
+
+      /* ── Misc ── */
       --log-dot: #555;
-      --card-selected-border: #555;
+      --card-selected-border: #7ba3ab;
     }
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
     body {
-      font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-family: var(--font-body);
       background: var(--bg-page);
       color: var(--text-primary);
       overflow: hidden;
       height: 100vh;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
     }
+
     #root { height: 100vh; display: flex; flex-direction: column; }
+
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+    @keyframes gentle-pulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
     @keyframes spin { to { transform: rotate(360deg); } }
-    ::-webkit-scrollbar { width: 6px; }
+
+    ::-webkit-scrollbar { width: 4px; }
     ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 4px; }
     ::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-hover); }
+
+    /* Material Symbols */
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+      vertical-align: middle;
+      font-size: 20px;
+    }
 
     /* Quick Question markdown styles */
     .qq-markdown { font-size: 13px; line-height: 1.6; color: var(--text-primary); }
     .qq-markdown p { margin: 0 0 6px; }
     .qq-markdown p:last-child { margin-bottom: 0; }
     .qq-markdown br { display: none; }
-    .qq-markdown h1, .qq-markdown h2, .qq-markdown h3 { margin: 12px 0 6px; font-weight: 600; color: var(--text-primary); }
+    .qq-markdown h1, .qq-markdown h2, .qq-markdown h3 { margin: 12px 0 6px; font-weight: 600; color: var(--text-primary); font-family: var(--font-headline); }
     .qq-markdown h1 { font-size: 16px; }
     .qq-markdown h2 { font-size: 14px; }
     .qq-markdown h3 { font-size: 13px; }
     .qq-markdown code {
       font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
       font-size: 12px;
-      background: rgba(0,0,0,0.15);
+      background: var(--bg-elevated);
       color: inherit;
       padding: 1px 5px;
       border-radius: 4px;
     }
     .qq-markdown pre {
-      background: rgba(0,0,0,0.15);
-      border-radius: 6px;
+      background: var(--bg-elevated);
+      border-radius: var(--radius-md);
       padding: 10px;
       overflow-x: auto;
       margin: 8px 0;
@@ -196,9 +241,9 @@
     .qq-markdown ul, .qq-markdown ol { margin: 2px 0 4px 16px; padding: 0; }
     .qq-markdown li { margin: 0; padding: 0; line-height: 1.4; }
     .qq-markdown strong { font-weight: 600; }
-    .qq-markdown a { color: var(--blue); text-decoration: none; }
+    .qq-markdown a { color: var(--green); text-decoration: none; }
     .qq-markdown blockquote {
-      border-left: 3px solid var(--border);
+      border-left: 3px solid var(--bg-highest);
       margin: 8px 0;
       padding: 4px 12px;
       color: var(--text-tertiary);

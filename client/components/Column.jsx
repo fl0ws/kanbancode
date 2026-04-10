@@ -13,6 +13,7 @@ export default function Column({ columnId, label, color, onAddTask }) {
 
   const { setNodeRef, isOver } = useDroppable({ id: columnId });
   const isNotStarted = columnId === 'not_started';
+  const isDone = columnId === 'done';
 
   function handleDragOver(e) {
     if (!isNotStarted) return;
@@ -43,24 +44,41 @@ export default function Column({ columnId, label, color, onAddTask }) {
     }
   }
 
+  // Column count badge color based on column type
+  const countStyle = columnId === 'claude'
+    ? { background: 'var(--purple-bg)', color: 'var(--purple)' }
+    : columnId === 'your_turn'
+    ? { background: 'var(--orange-bg)', color: 'var(--orange)' }
+    : columnId === 'done'
+    ? { background: 'var(--tertiary-container)', color: 'var(--tertiary)' }
+    : { background: 'var(--bg-elevated)', color: 'var(--text-secondary)' };
+
   return (
     <div
       style={{
         ...styles.column,
-        ...(isOver ? { borderColor: color + '66' } : {}),
-        ...(fileDragOver ? { borderColor: color, borderWidth: 2, borderStyle: 'dashed' } : {}),
+        ...(isOver ? { background: 'var(--bg-elevated)' } : {}),
+        ...(fileDragOver ? { outline: '2px dashed var(--green)', outlineOffset: -2 } : {}),
       }}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
       <div style={styles.header}>
-        <span style={{ ...styles.dot, background: color }} />
-        <span style={styles.label}>{label}</span>
-        <span style={styles.count}>{taskIds.length}</span>
+        <span style={{
+          ...styles.label,
+          color: isDone ? 'var(--text-secondary)' : 'var(--text-primary)',
+        }}>{label}</span>
+        <span style={{ ...styles.count, ...countStyle }}>{taskIds.length}</span>
+        <div style={{ flex: 1 }} />
         {onAddTask && (
-          <button style={styles.addBtn} onClick={onAddTask} title="New task">+</button>
+          <button style={styles.addBtn} onClick={onAddTask} title="New task">
+            <span className="material-symbols-outlined" style={{ fontSize: 14 }}>add</span>
+          </button>
         )}
+        <button style={styles.moreBtn}>
+          <span className="material-symbols-outlined" style={{ fontSize: 18 }}>more_horiz</span>
+        </button>
       </div>
       <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>
         <div ref={setNodeRef} style={styles.list}>
@@ -80,78 +98,73 @@ export default function Column({ columnId, label, color, onAddTask }) {
 
 const styles = {
   column: {
-    flex: '1 1 0',
-    minWidth: 260,
-    maxWidth: 340,
     display: 'flex',
     flexDirection: 'column',
-    background: 'var(--bg-surface)',
-    borderRadius: 12,
-    borderWidth: 0,
-    borderStyle: 'solid',
-    borderColor: 'transparent',
-    overflow: 'hidden',
-    transition: 'border-color 0.2s',
-    boxShadow: 'var(--shadow-sm)',
+    minHeight: 120,
+    transition: 'background 0.2s',
+    borderRadius: 'var(--radius-xl)',
   },
   header: {
     display: 'flex',
     alignItems: 'center',
     gap: 8,
-    padding: '12px 14px',
-    borderBottom: '1px solid var(--border)',
-  },
-  dot: {
-    width: 10,
-    height: 10,
-    borderRadius: '50%',
-    flexShrink: 0,
+    padding: '4px 8px 8px',
   },
   label: {
-    fontSize: 14,
-    fontWeight: 600,
+    fontFamily: 'var(--font-headline)',
+    fontSize: 11,
+    fontWeight: 700,
     color: 'var(--text-primary)',
+    textTransform: 'uppercase',
+    letterSpacing: '0.08em',
   },
   count: {
-    fontSize: 12,
-    color: 'var(--text-tertiary)',
-    marginLeft: 'auto',
-    background: 'var(--border)',
-    padding: '2px 8px',
+    fontSize: 10,
+    fontWeight: 700,
+    padding: '1px 7px',
     borderRadius: 10,
   },
   addBtn: {
-    width: 24,
-    height: 24,
-    borderRadius: '50%',
+    width: 22,
+    height: 22,
+    borderRadius: 'var(--radius-sm)',
     border: 'none',
-    background: 'var(--green)',
-    color: 'var(--text-on-accent)',
-    fontSize: 16,
-    lineHeight: 1,
+    background: 'none',
+    color: 'var(--text-muted)',
     cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    flexShrink: 0,
+    transition: 'color 0.15s',
+  },
+  moreBtn: {
+    width: 22,
+    height: 22,
+    borderRadius: 'var(--radius-sm)',
+    border: 'none',
+    background: 'none',
+    color: 'var(--text-muted)',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   list: {
     flex: 1,
     overflowY: 'auto',
-    padding: 8,
+    padding: '0 2px',
     display: 'flex',
     flexDirection: 'column',
-    gap: 6,
+    gap: 8,
     minHeight: 60,
   },
   dropHint: {
-    padding: '12px 8px',
+    padding: '14px 8px',
     textAlign: 'center',
     fontSize: 12,
     color: 'var(--text-muted)',
-    fontStyle: 'italic',
-    borderRadius: 8,
-    border: '1px dashed var(--border)',
+    borderRadius: 'var(--radius-lg)',
+    border: '2px dashed var(--border)',
     background: 'var(--bg-input)',
   },
 };

@@ -13,11 +13,11 @@ const COLUMN_LABELS = {
   done: 'Done',
 };
 
-const COLUMN_COLORS = {
-  not_started: '#9E9E9E',
-  claude: '#7C4DFF',
-  your_turn: '#FF9800',
-  done: '#4CAF50',
+const COLUMN_TAG_STYLES = {
+  not_started: { background: 'var(--bg-elevated)', color: 'var(--text-secondary)' },
+  claude: { background: 'var(--purple-bg)', color: 'var(--purple)' },
+  your_turn: { background: 'var(--orange-bg)', color: 'var(--orange)' },
+  done: { background: 'var(--tertiary-container)', color: 'var(--tertiary)' },
 };
 
 const NEXT_COLUMN = {
@@ -58,7 +58,7 @@ export default function TaskDetail({ taskId }) {
   if (!task) return null;
 
   const isRunning = poolStatus.running?.includes(taskId);
-  const color = COLUMN_COLORS[task.column];
+  const tagStyle = COLUMN_TAG_STYLES[task.column] || COLUMN_TAG_STYLES.not_started;
 
   function startEdit() {
     setEditTitle(task.title);
@@ -89,7 +89,6 @@ export default function TaskDetail({ taskId }) {
     setReply(val);
     handleReplyResize(e);
 
-    // Detect / at start of input
     const cursorPos = e.target.selectionStart;
     const textBefore = val.slice(0, cursorPos);
     const lastLineStart = textBefore.lastIndexOf('\n') + 1;
@@ -151,16 +150,25 @@ export default function TaskDetail({ taskId }) {
   return (
     <div style={{ ...styles.overlay, ...(sending ? styles.overlayFading : {}) }} onClick={() => !sending && setSelectedTask(null)}>
     <div style={{ ...styles.panel, ...(sending ? styles.panelSending : {}) }} onClick={e => e.stopPropagation()}>
+      {/* Panel Header */}
       <div style={styles.panelHeader}>
-        <div style={styles.colIndicator}>
-          <span style={{ ...styles.dot, background: color }} />
-          <span style={styles.colLabel}>{COLUMN_LABELS[task.column]}</span>
+        <div style={styles.headerLeft}>
+          <button style={styles.closeBtn} onClick={() => setSelectedTask(null)} title="Close">
+            <span className="material-symbols-outlined" style={{ fontSize: 18 }}>close</span>
+          </button>
+          <span style={{ ...styles.statusTag, ...tagStyle }}>
+            {isRunning && <span style={styles.statusDot} />}
+            {COLUMN_LABELS[task.column]}
+          </span>
         </div>
-        <button style={styles.closeBtn} onClick={() => setSelectedTask(null)} title="Close">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-          </svg>
-        </button>
+        <div style={styles.headerRight}>
+          {task.column === 'claude' && (
+            <button style={styles.headerAction} onClick={handleStop}>
+              <span style={{ color: 'var(--red)' }}>Stop</span>
+            </button>
+          )}
+          <button style={styles.headerAction} onClick={handleArchive}>Archive</button>
+        </div>
       </div>
 
       <div style={styles.body}>
@@ -178,21 +186,32 @@ export default function TaskDetail({ taskId }) {
               </div>
             ) : (
               <div style={styles.taskInfo} onClick={startEdit}>
-                <div style={styles.titleRow}>
-                  <h3 style={styles.taskTitle}>{task.title}</h3>
-                  <svg style={styles.editIcon} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
-                    <path d="m15 5 4 4" />
-                  </svg>
-                </div>
+                <h2 style={styles.taskTitle}>{task.title}</h2>
                 {task.description && <p style={styles.taskDesc}>{task.description}</p>}
               </div>
             )}
 
-            {task.branch && (
-              <div style={styles.meta}>
-                <span style={styles.metaLabel}>Branch:</span>
-                <span style={styles.metaValue}>{task.branch}</span>
+            {/* Metadata */}
+            {(task.working_dir || task.branch || task.conversation_id) && (
+              <div style={styles.metaBox}>
+                {task.working_dir && (
+                  <>
+                    <span style={styles.metaLabel}>Directory</span>
+                    <span style={styles.metaValue}>{task.working_dir}</span>
+                  </>
+                )}
+                {task.branch && (
+                  <>
+                    <span style={styles.metaLabel}>Branch</span>
+                    <span style={styles.metaValue}>{task.branch}</span>
+                  </>
+                )}
+                {task.conversation_id && (
+                  <>
+                    <span style={styles.metaLabel}>Session</span>
+                    <span style={styles.metaValue}>{task.conversation_id.slice(0, 8)}...</span>
+                  </>
+                )}
               </div>
             )}
 
@@ -205,10 +224,6 @@ export default function TaskDetail({ taskId }) {
                 Move to {COLUMN_LABELS[NEXT_COLUMN[task.column]]}
               </button>
             )}
-            {task.column === 'claude' && (
-              <button style={{ ...styles.actionBtn, ...styles.stopBtn }} onClick={handleStop}>Stop</button>
-            )}
-            <button style={{ ...styles.actionBtn, ...styles.archiveBtn }} onClick={handleArchive}>Archive</button>
             <button style={{ ...styles.actionBtn, ...styles.deleteBtn }} onClick={handleDelete}>Delete</button>
           </div>
         </div>
@@ -250,12 +265,9 @@ export default function TaskDetail({ taskId }) {
                     placeholder='Reply to Claude... Type "/" for commands'
                     rows={1}
                   />
-                <button type="submit" style={styles.sendBtn} disabled={!reply.trim()}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="22" y1="2" x2="11" y2="13" />
-                    <polygon points="22 2 15 22 11 13 2 9 22 2" />
-                  </svg>
-                </button>
+                  <button type="submit" style={styles.sendBtn} disabled={!reply.trim()}>
+                    Send
+                  </button>
                 </div>
               </div>
             </form>
@@ -271,7 +283,8 @@ const styles = {
   overlay: {
     position: 'fixed',
     inset: 0,
-    background: 'rgba(0,0,0,0.4)',
+    background: 'var(--overlay)',
+    backdropFilter: 'blur(4px)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -286,8 +299,8 @@ const styles = {
     maxWidth: '92vw',
     height: '85vh',
     background: 'var(--bg-surface)',
-    borderRadius: 12,
-    boxShadow: 'var(--shadow-lg, 0 16px 48px rgba(0,0,0,0.2))',
+    borderRadius: 'var(--radius-xl)',
+    boxShadow: 'var(--shadow-lg)',
     display: 'flex',
     flexDirection: 'column',
     overflow: 'hidden',
@@ -302,35 +315,59 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: '12px 16px',
+    padding: '12px 20px',
+    flexShrink: 0,
   },
-  colIndicator: {
+  headerLeft: {
     display: 'flex',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
   },
-  dot: {
-    width: 10,
-    height: 10,
-    borderRadius: '50%',
-  },
-  colLabel: {
-    fontSize: 13,
-    fontWeight: 500,
-    color: 'var(--text-primary)',
+  headerRight: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 4,
   },
   closeBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
-    border: '1px solid var(--border)',
-    background: 'var(--bg-elevated)',
+    width: 32,
+    height: 32,
+    borderRadius: 'var(--radius-sm)',
+    border: 'none',
+    background: 'none',
     color: 'var(--text-secondary)',
     cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    flexShrink: 0,
+    transition: 'background 0.15s',
+  },
+  statusTag: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 5,
+    fontSize: 10,
+    fontWeight: 700,
+    padding: '3px 10px',
+    borderRadius: 6,
+    textTransform: 'uppercase',
+    letterSpacing: '0.05em',
+  },
+  statusDot: {
+    width: 5,
+    height: 5,
+    borderRadius: '50%',
+    background: 'currentColor',
+    animation: 'gentle-pulse 2.5s ease-in-out infinite',
+  },
+  headerAction: {
+    padding: '6px 12px',
+    borderRadius: 'var(--radius-sm)',
+    border: 'none',
+    background: 'none',
+    color: 'var(--text-secondary)',
+    fontSize: 12,
+    fontWeight: 500,
+    cursor: 'pointer',
     transition: 'background 0.15s',
   },
   body: {
@@ -349,7 +386,7 @@ const styles = {
   leftScroll: {
     flex: 1,
     overflowY: 'auto',
-    padding: 16,
+    padding: '8px 20px',
   },
   rightCol: {
     flex: 1,
@@ -357,46 +394,45 @@ const styles = {
     flexDirection: 'column',
     minWidth: 0,
     overflow: 'hidden',
-    padding: '12px 16px',
+    padding: '8px 20px 14px',
     gap: 8,
   },
   taskInfo: {
     cursor: 'pointer',
-    marginBottom: 12,
-  },
-  titleRow: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 8,
-  },
-  editIcon: {
-    color: 'var(--text-muted)',
-    flexShrink: 0,
-    opacity: 0.6,
+    marginBottom: 16,
   },
   taskTitle: {
-    fontSize: 16,
-    fontWeight: 600,
+    fontFamily: 'var(--font-headline)',
+    fontSize: 18,
+    fontWeight: 800,
     color: 'var(--text-primary)',
-    marginBottom: 4,
+    letterSpacing: '-0.02em',
+    marginBottom: 6,
+    lineHeight: 1.3,
   },
   taskDesc: {
     fontSize: 13,
-    color: 'var(--text-tertiary)',
-    lineHeight: 1.5,
+    color: 'var(--text-secondary)',
+    lineHeight: 1.6,
   },
-  meta: {
+  metaBox: {
+    display: 'grid',
+    gridTemplateColumns: 'auto 1fr',
+    gap: '6px 14px',
     fontSize: 12,
-    color: 'var(--text-tertiary)',
-    marginBottom: 4,
-    display: 'flex',
-    gap: 6,
+    padding: '12px 14px',
+    background: 'var(--bg-sidebar)',
+    borderRadius: 'var(--radius-lg)',
+    marginBottom: 14,
   },
   metaLabel: {
     color: 'var(--text-muted)',
-    flexShrink: 0,
+    fontWeight: 500,
   },
   metaValue: {
+    color: 'var(--text-primary)',
+    fontFamily: "'Cascadia Code', 'Fira Code', monospace",
+    fontSize: 11,
     wordBreak: 'break-all',
   },
   editForm: {
@@ -406,23 +442,26 @@ const styles = {
     gap: 8,
   },
   editInput: {
-    padding: '6px 8px',
-    borderRadius: 6,
-    border: '1px solid var(--border)',
+    padding: '8px 12px',
+    borderRadius: 'var(--radius-sm)',
+    border: 'none',
     background: 'var(--bg-input)',
     color: 'var(--text-primary)',
     fontSize: 14,
     fontWeight: 600,
+    fontFamily: 'var(--font-headline)',
+    outline: 'none',
   },
   editTextarea: {
-    padding: '6px 8px',
-    borderRadius: 6,
-    border: '1px solid var(--border)',
+    padding: '8px 12px',
+    borderRadius: 'var(--radius-sm)',
+    border: 'none',
     background: 'var(--bg-input)',
     color: 'var(--text-primary)',
     fontSize: 13,
     resize: 'vertical',
     fontFamily: 'inherit',
+    outline: 'none',
   },
   editActions: {
     display: 'flex',
@@ -431,7 +470,6 @@ const styles = {
   },
   replyForm: {
     flexShrink: 0,
-    background: 'var(--bg-surface)',
   },
   replyWrapper: {
     position: 'relative',
@@ -440,10 +478,9 @@ const styles = {
     display: 'flex',
     alignItems: 'flex-end',
     gap: 8,
-    background: 'var(--bg-input)',
-    borderRadius: 20,
+    background: 'var(--bg-sidebar)',
+    borderRadius: 'var(--radius-lg)',
     padding: '4px 4px 4px 14px',
-    border: '1px solid var(--border)',
   },
   replyInput: {
     flex: 1,
@@ -460,65 +497,54 @@ const styles = {
     overflowY: 'auto',
   },
   sendBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: '50%',
+    padding: '8px 14px',
+    borderRadius: 'var(--radius-md)',
     border: 'none',
-    background: 'var(--green)',
+    background: 'linear-gradient(135deg, var(--green), var(--green-dark))',
     color: 'var(--text-on-accent)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
+    fontSize: 12,
+    fontWeight: 600,
     cursor: 'pointer',
     flexShrink: 0,
+    fontFamily: 'var(--font-headline)',
+    transition: 'opacity 0.15s',
   },
   quickActions: {
     display: 'flex',
     flexDirection: 'column',
     gap: 6,
-    padding: '12px 16px',
+    padding: '12px 20px',
     flexShrink: 0,
   },
   actionBtn: {
-    padding: '5px 10px',
-    borderRadius: 6,
-    border: '1px solid var(--border)',
+    padding: '8px 12px',
+    borderRadius: 'var(--radius-sm)',
+    border: 'none',
     background: 'var(--bg-elevated)',
     color: 'var(--text-secondary)',
     fontSize: 12,
+    fontWeight: 500,
     cursor: 'pointer',
+    transition: 'background 0.15s',
   },
   moveBtn: {
-    background: 'var(--green)',
-    borderColor: 'var(--green-dark)',
+    background: 'linear-gradient(135deg, var(--green), var(--green-dark))',
     color: 'var(--text-on-accent)',
   },
-  stopBtn: {
-    borderColor: 'var(--red)',
-    color: 'var(--red)',
-  },
-  archiveBtn: {
-    background: 'var(--blue-bg)',
-    borderColor: 'var(--blue-border)',
-    color: 'var(--blue)',
-  },
   deleteBtn: {
-    background: 'var(--red-alpha, rgba(248,81,73,0.1))',
-    borderColor: 'var(--red)',
     color: 'var(--red)',
   },
   smallBtn: {
-    padding: '4px 10px',
-    borderRadius: 6,
-    border: '1px solid var(--border)',
+    padding: '6px 12px',
+    borderRadius: 'var(--radius-sm)',
+    border: 'none',
     background: 'var(--bg-elevated)',
     color: 'var(--text-secondary)',
     fontSize: 12,
     cursor: 'pointer',
   },
   btnGreen: {
-    background: 'var(--green)',
-    borderColor: 'var(--green-dark)',
+    background: 'linear-gradient(135deg, var(--green), var(--green-dark))',
     color: 'var(--text-on-accent)',
   },
 };

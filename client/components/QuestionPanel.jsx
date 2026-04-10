@@ -7,6 +7,7 @@ export default function QuestionPanel({ taskId, questions }) {
   const [answers, setAnswers] = useState({});
   const [customTexts, setCustomTexts] = useState({});
   const [submitting, setSubmitting] = useState(false);
+  const [hoveredOption, setHoveredOption] = useState(null);
 
   function selectOption(qIndex, label) {
     setAnswers(prev => ({ ...prev, [qIndex]: label }));
@@ -71,8 +72,11 @@ export default function QuestionPanel({ taskId, questions }) {
                   style={{
                     ...styles.option,
                     ...(selected ? styles.optionSelected : {}),
+                    ...(!selected && hoveredOption === `${qIndex}-${oIndex}` ? { background: 'var(--bg-elevated)' } : {}),
                   }}
                   onClick={() => selectOption(qIndex, opt.label)}
+                  onMouseEnter={() => setHoveredOption(`${qIndex}-${oIndex}`)}
+                  onMouseLeave={() => setHoveredOption(null)}
                 >
                   <span style={styles.optionLabel}>{opt.label}</span>
                   {opt.description && (
@@ -110,13 +114,12 @@ export default function QuestionPanel({ taskId, questions }) {
 
 const styles = {
   container: {
-    borderRadius: 10,
-    background: 'var(--bg-input)',
+    borderRadius: 'var(--radius-lg)',
+    background: 'var(--bg-sidebar)',
     overflow: 'hidden',
     display: 'flex',
     flexDirection: 'column',
     maxHeight: 400,
-    boxShadow: '0 2px 6px rgba(0,0,0,0.16), 0 1px 3px rgba(0,0,0,0.12)',
   },
   scrollArea: {
     flex: 1,
@@ -128,7 +131,6 @@ const styles = {
     alignItems: 'center',
     gap: 8,
     padding: '10px 14px',
-    borderBottom: '1px solid var(--blue-border)',
   },
   icon: {
     width: 22,
@@ -145,19 +147,19 @@ const styles = {
   },
   title: {
     fontSize: 13,
-    fontWeight: 600,
-    color: 'var(--blue-dark)',
+    fontFamily: 'var(--font-headline)',
+    fontWeight: 700,
+    color: 'var(--text-primary)',
   },
   question: {
     padding: '12px 14px',
-    borderBottom: '1px solid var(--blue-border)',
   },
   chip: {
     display: 'inline-block',
     fontSize: 10,
     fontWeight: 600,
     padding: '2px 8px',
-    borderRadius: 4,
+    borderRadius: 'var(--radius-sm)',
     background: 'var(--blue)',
     color: 'var(--text-on-accent)',
     marginBottom: 6,
@@ -166,7 +168,8 @@ const styles = {
   },
   questionText: {
     fontSize: 13,
-    fontWeight: 500,
+    fontFamily: 'var(--font-headline)',
+    fontWeight: 700,
     color: 'var(--text-primary)',
     marginBottom: 10,
     lineHeight: 1.4,
@@ -181,21 +184,21 @@ const styles = {
     flexDirection: 'column',
     gap: 2,
     padding: '8px 12px',
-    borderRadius: 8,
-    border: '2px solid var(--blue-border)',
+    borderRadius: 'var(--radius-sm)',
+    border: 'none',
     background: 'var(--bg-surface)',
     cursor: 'pointer',
     textAlign: 'left',
-    transition: 'border-color 0.15s, background 0.15s',
+    transition: 'background 0.15s',
   },
   optionSelected: {
-    borderColor: 'var(--blue)',
-    background: 'var(--blue-bg)',
+    background: 'var(--green-bg)',
+    color: 'var(--green)',
   },
   optionLabel: {
     fontSize: 13,
     fontWeight: 500,
-    color: 'var(--text-primary)',
+    color: 'inherit',
   },
   optionDesc: {
     fontSize: 12,
@@ -208,9 +211,9 @@ const styles = {
   customInput: {
     width: '100%',
     padding: '6px 10px',
-    borderRadius: 6,
-    border: '1px solid var(--blue-border)',
-    background: 'var(--bg-surface)',
+    borderRadius: 'var(--radius-sm)',
+    border: 'none',
+    background: 'var(--bg-input)',
     color: 'var(--text-primary)',
     fontSize: 12,
     outline: 'none',
@@ -222,16 +225,17 @@ const styles = {
   },
   submitBtn: {
     padding: '6px 16px',
-    borderRadius: 6,
+    borderRadius: 'var(--radius-lg)',
     border: 'none',
-    background: 'var(--blue)',
+    background: 'linear-gradient(135deg, var(--green), var(--green-dark))',
     color: 'var(--text-on-accent)',
     fontSize: 13,
-    fontWeight: 500,
+    fontFamily: 'var(--font-headline)',
+    fontWeight: 700,
     cursor: 'pointer',
   },
   submitDisabled: {
-    background: 'var(--blue-light)',
+    opacity: 0.5,
     cursor: 'not-allowed',
   },
 };

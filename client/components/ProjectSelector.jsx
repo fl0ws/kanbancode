@@ -26,8 +26,9 @@ export default function ProjectSelector({ onManage }) {
   return (
     <div ref={ref} style={styles.container}>
       <button style={styles.trigger} onClick={() => setOpen(!open)}>
+        <span className="material-symbols-outlined" style={{ fontSize: 16, color: 'var(--green)' }}>folder</span>
         <span style={styles.projectName}>{activeProject?.name || 'Select Project'}</span>
-        <span style={styles.chevron}>{open ? '\u25b2' : '\u25bc'}</span>
+        <span className="material-symbols-outlined" style={{ fontSize: 14, color: 'var(--text-muted)' }}>expand_more</span>
       </button>
       {activeProject?.working_dir && (
         <span style={styles.workingDir} title={activeProject.working_dir}>
@@ -79,23 +80,20 @@ const styles = {
     alignItems: 'center',
     gap: 6,
     padding: '6px 12px',
-    borderRadius: 6,
-    border: '1px solid var(--border)',
-    background: 'var(--bg-surface)',
+    borderRadius: 'var(--radius-lg)',
+    border: 'none',
+    background: 'var(--bg-sidebar)',
     cursor: 'pointer',
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: 500,
     color: 'var(--text-primary)',
+    transition: 'background 0.15s',
   },
   projectName: {
     maxWidth: 160,
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
-  },
-  chevron: {
-    fontSize: 10,
-    color: 'var(--text-muted)',
   },
   dropdown: {
     position: 'absolute',
@@ -104,11 +102,11 @@ const styles = {
     marginTop: 4,
     minWidth: 220,
     background: 'var(--bg-surface)',
-    border: '1px solid var(--border)',
-    borderRadius: 8,
+    borderRadius: 'var(--radius-lg)',
     boxShadow: 'var(--shadow-dropdown)',
     zIndex: 50,
     overflow: 'hidden',
+    padding: '4px 0',
   },
   option: {
     display: 'flex',
@@ -122,10 +120,11 @@ const styles = {
     fontSize: 13,
     color: 'var(--text-secondary)',
     textAlign: 'left',
+    transition: 'background 0.1s',
   },
   optionActive: {
-    background: 'var(--blue-bg)',
-    color: 'var(--blue)',
+    background: 'var(--green-bg)',
+    color: 'var(--green)',
     fontWeight: 500,
   },
   optionDir: {
@@ -136,6 +135,7 @@ const styles = {
   divider: {
     height: 1,
     background: 'var(--border)',
+    margin: '4px 0',
   },
   manageBtn: {
     width: '100%',
@@ -144,7 +144,7 @@ const styles = {
     background: 'none',
     cursor: 'pointer',
     fontSize: 13,
-    color: 'var(--purple)',
+    color: 'var(--green)',
     textAlign: 'left',
     fontWeight: 500,
   },

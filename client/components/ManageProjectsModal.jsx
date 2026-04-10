@@ -76,8 +76,8 @@ export default function ManageProjectsModal({ onClose }) {
         </div>
 
         <div style={styles.list}>
-          {projects.map(project => (
-            <div key={project.id} style={styles.item}>
+          {projects.map((project, idx) => (
+            <div key={project.id} style={{ ...styles.item, ...(idx % 2 === 1 ? styles.itemAlt : {}) }}>
               {editing === project.id ? (
                 <div style={styles.editRow}>
                   <input
@@ -142,6 +142,7 @@ const styles = {
     position: 'fixed',
     inset: 0,
     background: 'var(--overlay)',
+    backdropFilter: 'blur(4px)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -149,7 +150,7 @@ const styles = {
   },
   modal: {
     background: 'var(--bg-surface)',
-    borderRadius: 12,
+    borderRadius: 'var(--radius-xl)',
     padding: 24,
     width: 520,
     maxWidth: '90vw',
@@ -164,16 +165,17 @@ const styles = {
     marginBottom: 16,
   },
   heading: {
-    fontSize: 16,
-    fontWeight: 600,
+    fontFamily: 'var(--font-headline)',
+    fontSize: 15,
+    fontWeight: 700,
     color: 'var(--text-primary)',
   },
   closeBtn: {
     width: 36,
     height: 36,
-    borderRadius: 8,
-    border: '1px solid var(--border)',
-    background: 'var(--bg-elevated)',
+    borderRadius: 'var(--radius-sm)',
+    border: 'none',
+    background: 'none',
     color: 'var(--text-secondary)',
     cursor: 'pointer',
     display: 'flex',
@@ -183,20 +185,24 @@ const styles = {
     transition: 'background 0.15s',
   },
   subheading: {
+    fontFamily: 'var(--font-headline)',
     fontSize: 14,
-    fontWeight: 500,
+    fontWeight: 600,
     color: 'var(--text-secondary)',
     marginBottom: 8,
   },
   list: {
     display: 'flex',
     flexDirection: 'column',
-    gap: 2,
+    gap: 4,
     marginBottom: 20,
   },
   item: {
-    borderBottom: '1px solid var(--border-light)',
-    padding: '8px 0',
+    padding: '8px 10px',
+    borderRadius: 'var(--radius-sm)',
+  },
+  itemAlt: {
+    background: 'var(--bg-sidebar)',
   },
   itemRow: {
     display: 'flex',
@@ -222,7 +228,7 @@ const styles = {
   activeBadge: {
     fontSize: 10,
     padding: '1px 6px',
-    borderRadius: 4,
+    borderRadius: 'var(--radius-sm)',
     background: 'var(--blue-bg)',
     color: 'var(--blue)',
     fontWeight: 600,
@@ -246,7 +252,8 @@ const styles = {
   },
   fieldLabel: {
     fontSize: 12,
-    color: 'var(--text-tertiary)',
+    fontWeight: 500,
+    color: 'var(--text-secondary)',
     marginBottom: -4,
   },
   editActions: {
@@ -259,12 +266,11 @@ const styles = {
     flexDirection: 'column',
     gap: 8,
     padding: '16px 0',
-    borderTop: '1px solid var(--border-light)',
   },
   input: {
     padding: '8px 10px',
-    borderRadius: 6,
-    border: '1px solid var(--border)',
+    borderRadius: 'var(--radius-sm)',
+    border: 'none',
     background: 'var(--bg-input)',
     color: 'var(--text-primary)',
     fontSize: 13,
@@ -272,22 +278,25 @@ const styles = {
   },
   btn: {
     padding: '6px 14px',
-    borderRadius: 6,
-    border: '1px solid var(--border)',
+    borderRadius: 'var(--radius-sm)',
+    border: 'none',
     background: 'var(--bg-elevated)',
     color: 'var(--text-secondary)',
     fontSize: 13,
     cursor: 'pointer',
   },
   btnPrimary: {
-    background: 'var(--green)',
-    borderColor: 'var(--green-dark)',
+    background: 'linear-gradient(135deg, var(--green), var(--green-dark))',
     color: 'var(--text-on-accent)',
+    border: 'none',
+    borderRadius: 'var(--radius-lg)',
+    fontFamily: 'var(--font-headline)',
+    fontWeight: 600,
   },
   smallBtn: {
     padding: '4px 10px',
-    borderRadius: 6,
-    border: '1px solid var(--border)',
+    borderRadius: 'var(--radius-sm)',
+    border: 'none',
     background: 'var(--bg-elevated)',
     color: 'var(--text-secondary)',
     fontSize: 12,
@@ -295,7 +304,8 @@ const styles = {
   },
   deleteBtn: {
     color: 'var(--red)',
-    borderColor: 'var(--red-alpha)',
+    background: 'var(--red-alpha)',
+    border: 'none',
   },
   error: {
     color: 'var(--red)',

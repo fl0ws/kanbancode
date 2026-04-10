@@ -8,6 +8,7 @@ export default function FolderPicker({ value, onChange }) {
   const [isRoot, setIsRoot] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [hoveredDir, setHoveredDir] = useState(null);
 
   useEffect(() => {
     if (open) {
@@ -87,7 +88,12 @@ export default function FolderPicker({ value, onChange }) {
               <button
                 key={dir.path}
                 type="button"
-                style={styles.dirItem}
+                style={{
+                  ...styles.dirItem,
+                  ...(hoveredDir === dir.path ? { background: 'var(--bg-hover)' } : {}),
+                }}
+                onMouseEnter={() => setHoveredDir(dir.path)}
+                onMouseLeave={() => setHoveredDir(null)}
                 onClick={() => browse(dir.path)}
               >
                 <span style={styles.folderIcon}>{isRoot && !currentPath ? '💾' : '📁'}</span>
@@ -119,8 +125,8 @@ const styles = {
   input: {
     flex: 1,
     padding: '8px 10px',
-    borderRadius: 6,
-    border: '1px solid var(--border)',
+    borderRadius: 'var(--radius-sm)',
+    border: 'none',
     background: 'var(--bg-input)',
     color: 'var(--text-primary)',
     fontSize: 13,
@@ -128,8 +134,8 @@ const styles = {
   },
   browseBtn: {
     padding: '6px 12px',
-    borderRadius: 6,
-    border: '1px solid var(--border)',
+    borderRadius: 'var(--radius-sm)',
+    border: 'none',
     background: 'var(--bg-elevated)',
     color: 'var(--text-secondary)',
     fontSize: 12,
@@ -138,8 +144,8 @@ const styles = {
   },
   picker: {
     marginTop: 6,
-    border: '1px solid var(--border)',
-    borderRadius: 8,
+    border: 'none',
+    borderRadius: 'var(--radius-sm)',
     background: 'var(--bg-surface)',
     overflow: 'hidden',
   },
@@ -149,14 +155,15 @@ const styles = {
     gap: 6,
     padding: '6px 10px',
     background: 'var(--bg-input)',
-    borderBottom: '1px solid var(--border)',
+    borderRadius: 'var(--radius-sm)',
+    margin: '6px 6px 0 6px',
     minHeight: 32,
   },
   upBtn: {
     padding: '2px 8px',
-    borderRadius: 4,
-    border: '1px solid var(--border)',
-    background: 'var(--bg-surface)',
+    borderRadius: 'var(--radius-sm)',
+    border: 'none',
+    background: 'var(--bg-elevated)',
     color: 'var(--text-secondary)',
     fontSize: 12,
     cursor: 'pointer',
@@ -164,7 +171,7 @@ const styles = {
   },
   currentPath: {
     fontSize: 12,
-    color: 'var(--text-tertiary)',
+    color: 'var(--text-secondary)',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
@@ -173,6 +180,10 @@ const styles = {
   dirList: {
     maxHeight: 200,
     overflowY: 'auto',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 1,
+    padding: '4px 0',
   },
   dirItem: {
     display: 'flex',
@@ -181,6 +192,7 @@ const styles = {
     width: '100%',
     padding: '6px 10px',
     border: 'none',
+    borderRadius: 'var(--radius-sm)',
     background: 'none',
     cursor: 'pointer',
     fontSize: 13,
@@ -190,6 +202,7 @@ const styles = {
   folderIcon: {
     fontSize: 14,
     flexShrink: 0,
+    color: 'var(--text-muted)',
   },
   dirName: {
     overflow: 'hidden',
@@ -212,12 +225,11 @@ const styles = {
     justifyContent: 'flex-end',
     gap: 6,
     padding: '8px 10px',
-    borderTop: '1px solid var(--border)',
   },
   cancelBtn: {
     padding: '4px 10px',
-    borderRadius: 6,
-    border: '1px solid var(--border)',
+    borderRadius: 'var(--radius-sm)',
+    border: 'none',
     background: 'var(--bg-elevated)',
     color: 'var(--text-secondary)',
     fontSize: 12,
@@ -225,11 +237,12 @@ const styles = {
   },
   selectBtn: {
     padding: '4px 10px',
-    borderRadius: 6,
-    border: '1px solid var(--green-dark)',
-    background: 'var(--green)',
-    color: 'var(--text-on-accent)',
+    borderRadius: 'var(--radius-sm)',
+    border: 'none',
+    background: 'var(--green-bg)',
+    color: 'var(--green)',
     fontSize: 12,
     cursor: 'pointer',
+    fontWeight: 500,
   },
 };

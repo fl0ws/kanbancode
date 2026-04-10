@@ -66,7 +66,6 @@ export default function App() {
   useEffect(() => {
     fetchProjects().then(projects => {
       setProjects(projects);
-      // If no active project set, use the first one
       const stored = localStorage.getItem('kanban_active_project');
       if (!stored || !projects.find(p => p.id === stored)) {
         if (projects.length > 0) {
@@ -88,38 +87,77 @@ export default function App() {
   const showConcurrencyPrompt = poolStatus.maxConcurrency === null;
 
   return (
-    <>
-      <header style={styles.header}>
-        <div style={styles.headerLeft}>
-          <ProjectTitle
-            projects={projects}
-            activeProject={activeProject}
-            onSelect={(id) => setActiveProject(id)}
-            onManage={() => setShowManageProjects(true)}
-          />
+    <div style={styles.appLayout}>
+      {/* ═══ Sidebar ═══ */}
+      <aside style={styles.sidebar}>
+        {/* Brand */}
+        <div style={styles.brand}>
+          <div style={styles.brandIcon}>
+            <span className="material-symbols-outlined" style={{ fontSize: 16, color: 'var(--text-on-accent)', fontVariationSettings: "'FILL' 1" }}>grid_view</span>
+          </div>
+          <div>
+            <div style={styles.brandTitle}>Claude Code</div>
+            <div style={styles.brandSub}>KANBAN</div>
+          </div>
         </div>
-        <div style={styles.headerRight}>
-          {isDreaming && <DreamingIndicator />}
-          <PoolBadge status={poolStatus} />
-          <button style={styles.themeBtn} onClick={toggleTheme} title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}>
-            {theme === 'light' ? '🌙' : '☀️'}
-          </button>
-          <button style={styles.btn} onClick={() => setShowCommands(true)}>Commands</button>
-          <button style={styles.btn} onClick={() => setShowSettings(true)}>Settings</button>
-          <button style={styles.btn} onClick={() => setShowArchive(true)}>Archive</button>
-          <button style={{ ...styles.btn, ...styles.btnPrimary }} onClick={() => setShowCreate(true)}>+ New Task</button>
-        </div>
-      </header>
 
-      <div style={styles.body}>
-        <div style={{ flex: 1, overflow: 'hidden' }}>
+        {/* New Task CTA */}
+        <button style={styles.newTaskBtn} onClick={() => setShowCreate(true)}>
+          <span className="material-symbols-outlined" style={{ fontSize: 18 }}>add</span>
+          New Task
+        </button>
+
+        {/* Navigation */}
+        <nav style={styles.nav}>
+          <NavItem icon="dashboard" label="Board" active filled />
+          <NavItem icon="inventory_2" label="Archive" onClick={() => setShowArchive(true)} />
+          <NavItem icon="terminal" label="Commands" onClick={() => setShowCommands(true)} />
+          <NavItem icon="settings" label="Settings" onClick={() => setShowSettings(true)} />
+        </nav>
+
+        {/* Spacer */}
+        <div style={{ flex: 1 }} />
+
+        {/* Pool Status Widget */}
+        <PoolWidget status={poolStatus} />
+
+        {/* Dreaming indicator */}
+        {isDreaming && <DreamingIndicator />}
+      </aside>
+
+      {/* ═══ Main Content ═══ */}
+      <main style={styles.main}>
+        {/* Top Bar */}
+        <header style={styles.topBar}>
+          <div style={styles.topBarLeft}>
+            <ProjectSelector
+              projects={projects}
+              activeProject={activeProject}
+              onSelect={(id) => setActiveProject(id)}
+              onManage={() => setShowManageProjects(true)}
+            />
+          </div>
+          <div style={styles.topBarRight}>
+            <button style={styles.iconBtn} onClick={toggleTheme} title={theme === 'light' ? 'Dark mode' : 'Light mode'}>
+              <span className="material-symbols-outlined" style={{ fontSize: 20 }}>{theme === 'light' ? 'dark_mode' : 'light_mode'}</span>
+            </button>
+          </div>
+        </header>
+
+        {/* Board Header */}
+        <div style={styles.boardHeader}>
+          <h1 style={styles.boardTitle}>Kanban Board</h1>
+          <p style={styles.boardSubtitle}>Orchestrate autonomous Claude tasks with precision and calm.</p>
+        </div>
+
+        {/* Board */}
+        <div style={styles.boardArea}>
           <Board onAddTask={() => setShowCreate(true)} />
         </div>
-      </div>
+      </main>
 
-      {selectedTaskId && (
-        <TaskDetail taskId={selectedTaskId} />
-      )}
+      {/* ═══ Overlays ═══ */}
+      {selectedTaskId && <TaskDetail taskId={selectedTaskId} />}
       {showCreate && <CreateTaskModal onClose={() => setShowCreate(false)} draft={createDraft} setDraft={setCreateDraft} />}
       {showArchive && <ArchiveModal onClose={() => setShowArchive(false)} />}
       {showSettings && <SettingsModal onClose={() => setShowSettings(false)} zoom={zoom} setZoom={setZoom} />}
@@ -128,7 +166,25 @@ export default function App() {
       {showQuickQuestion && <QuickQuestion onClose={() => setShowQuickQuestion(false)} />}
       {showConcurrencyPrompt && <ConcurrencyPrompt />}
       <MultiSelectBar />
-    </>
+    </div>
+  );
+}
+
+function NavItem({ icon, label, active, filled, onClick }) {
+  return (
+    <button
+      style={{
+        ...styles.navItem,
+        ...(active ? styles.navItemActive : {}),
+      }}
+      onClick={onClick}
+    >
+      <span className="material-symbols-outlined" style={{
+        fontSize: 20,
+        fontVariationSettings: filled && active ? "'FILL' 1" : "'FILL' 0",
+      }}>{icon}</span>
+      <span style={styles.navLabel}>{label}</span>
+    </button>
   );
 }
 
@@ -167,7 +223,7 @@ function MultiSelectBar() {
   );
 }
 
-function ProjectTitle({ projects, activeProject, onSelect, onManage }) {
+function ProjectSelector({ projects, activeProject, onSelect, onManage }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
@@ -182,9 +238,10 @@ function ProjectTitle({ projects, activeProject, onSelect, onManage }) {
 
   return (
     <div ref={ref} style={{ position: 'relative' }}>
-      <button style={styles.titleBtn} onClick={() => setOpen(!open)}>
+      <button style={styles.projectBtn} onClick={() => setOpen(!open)}>
+        <span className="material-symbols-outlined" style={{ fontSize: 16, color: 'var(--green)' }}>folder</span>
         <span>{activeProject?.name || 'Select Project'}</span>
-        <span style={styles.titleChevron}>{open ? '\u25b2' : '\u25bc'}</span>
+        <span className="material-symbols-outlined" style={{ fontSize: 14, color: 'var(--text-muted)' }}>expand_more</span>
       </button>
       {open && (
         <div style={styles.projectDropdown}>
@@ -215,14 +272,14 @@ function ProjectTitle({ projects, activeProject, onSelect, onManage }) {
 
 function DreamingIndicator() {
   return (
-    <span style={styles.dreamBadge} title="Consolidating project memory...">
-      <span style={styles.dreamIcon}>🌙</span>
-      <span>Dreaming</span>
-    </span>
+    <div style={styles.dreamBadge}>
+      <span style={{ fontSize: 14 }}>🌙</span>
+      <span style={{ fontSize: 11, fontWeight: 600 }}>Dreaming</span>
+    </div>
   );
 }
 
-function PoolBadge({ status }) {
+function PoolWidget({ status }) {
   const [open, setOpen] = useState(false);
   const [runningDetails, setRunningDetails] = useState([]);
   const ref = useRef(null);
@@ -237,7 +294,6 @@ function PoolBadge({ status }) {
     return () => document.removeEventListener('mousedown', handle);
   }, [open]);
 
-  // Fetch full task details when dropdown opens
   useEffect(() => {
     if (open && status.running?.length > 0) {
       Promise.all(
@@ -252,6 +308,7 @@ function PoolBadge({ status }) {
 
   const running = status.running?.length || 0;
   const queued = status.queued?.length || 0;
+  const max = status.maxConcurrency || 1;
 
   function getProjectName(projectId) {
     const p = projects.find(p => p.id === projectId);
@@ -259,20 +316,33 @@ function PoolBadge({ status }) {
   }
 
   return (
-    <span ref={ref} style={{ position: 'relative' }}>
-      <span
-        style={{ ...styles.badge, cursor: running > 0 ? 'pointer' : 'default' }}
+    <div ref={ref} style={styles.poolWidget}>
+      <div
+        style={{ ...styles.poolHeader, cursor: running > 0 ? 'pointer' : 'default' }}
         onClick={() => running > 0 && setOpen(o => !o)}
       >
-        {running}/{status.maxConcurrency} running
-        {queued > 0 && ` | ${queued} queued`}
-      </span>
+        <div style={styles.poolDot} />
+        <span style={styles.poolLabel}>Worker Pool</span>
+      </div>
+      <div style={styles.poolRow}>
+        <span style={styles.poolRowLabel}>Running</span>
+        <span style={styles.poolRowValue}>{running} / {max}</span>
+      </div>
+      {queued > 0 && (
+        <div style={styles.poolRow}>
+          <span style={styles.poolRowLabel}>Queued</span>
+          <span style={styles.poolRowValue}>{queued}</span>
+        </div>
+      )}
+      <div style={styles.poolTrack}>
+        <div style={{ ...styles.poolBar, width: `${(running / max) * 100}%` }} />
+      </div>
       {open && runningDetails.length > 0 && (
         <div style={styles.poolDropdown}>
           <div style={styles.poolDropdownHeader}>Running Tasks</div>
           {runningDetails.map(task => (
             <div key={task.id} style={styles.poolDropdownItem}>
-              <span style={styles.poolDropdownDot} />
+              <div style={styles.poolDropdownItemDot} />
               <div style={styles.poolDropdownInfo}>
                 <span style={styles.poolDropdownTitle}>{task.title}</span>
                 {task.project_id && (
@@ -283,54 +353,306 @@ function PoolBadge({ status }) {
           ))}
         </div>
       )}
-    </span>
+    </div>
   );
 }
 
 const styles = {
-  header: {
+  // ── App Layout ──
+  appLayout: {
     display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: '12px 20px',
-    background: 'var(--bg-surface)',
-    boxShadow: 'var(--shadow-md)',
+    height: '100vh',
+    overflow: 'hidden',
+  },
+
+  // ── Sidebar ──
+  sidebar: {
+    width: 'var(--sidebar-width)',
     flexShrink: 0,
-    zIndex: 10,
+    background: 'var(--bg-sidebar)',
+    display: 'flex',
+    flexDirection: 'column',
+    padding: '24px 16px',
+    gap: 4,
+    height: '100vh',
+    zIndex: 40,
   },
-  headerLeft: {
+  brand: {
     display: 'flex',
     alignItems: 'center',
-    gap: 16,
+    gap: 10,
+    padding: '0 8px',
+    marginBottom: 20,
   },
-  titleBtn: {
+  brandIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 'var(--radius-md)',
+    background: 'linear-gradient(135deg, var(--green), var(--green-dark))',
     display: 'flex',
     alignItems: 'center',
-    gap: 8,
-    background: 'none',
+    justifyContent: 'center',
+  },
+  brandTitle: {
+    fontFamily: 'var(--font-headline)',
+    fontSize: 15,
+    fontWeight: 700,
+    color: 'var(--green)',
+  },
+  brandSub: {
+    fontSize: 10,
+    fontWeight: 600,
+    color: 'var(--text-muted)',
+    textTransform: 'uppercase',
+    letterSpacing: '0.1em',
+  },
+  newTaskBtn: {
+    width: '100%',
+    padding: '12px 16px',
+    borderRadius: 'var(--radius-lg)',
     border: 'none',
+    background: 'linear-gradient(135deg, var(--green), var(--green-dark))',
+    color: 'var(--text-on-accent)',
+    fontFamily: 'var(--font-headline)',
+    fontSize: 13,
+    fontWeight: 600,
     cursor: 'pointer',
-    fontSize: 18,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginBottom: 12,
+    transition: 'transform 0.15s, opacity 0.15s',
+  },
+  nav: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 2,
+  },
+  navItem: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 10,
+    padding: '10px 14px',
+    borderRadius: 'var(--radius-lg)',
+    border: 'none',
+    background: 'none',
+    color: 'var(--text-secondary)',
+    cursor: 'pointer',
+    transition: 'background 0.15s, color 0.15s',
+    width: '100%',
+    textAlign: 'left',
+  },
+  navItemActive: {
+    background: 'var(--bg-highest)',
+    color: 'var(--green)',
+    fontWeight: 600,
+  },
+  navLabel: {
+    fontSize: 13,
+    fontFamily: 'var(--font-body)',
+  },
+
+  // ── Pool Widget ──
+  poolWidget: {
+    padding: '14px 16px',
+    background: 'var(--bg-surface)',
+    borderRadius: 'var(--radius-lg)',
+    position: 'relative',
+  },
+  poolHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 10,
+  },
+  poolDot: {
+    width: 6,
+    height: 6,
+    borderRadius: '50%',
+    background: 'var(--tertiary)',
+    animation: 'gentle-pulse 2.5s ease-in-out infinite',
+  },
+  poolLabel: {
+    fontSize: 10,
+    fontWeight: 700,
+    color: 'var(--text-primary)',
+    textTransform: 'uppercase',
+    letterSpacing: '0.08em',
+  },
+  poolRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  poolRowLabel: {
+    fontSize: 12,
+    color: 'var(--text-secondary)',
+  },
+  poolRowValue: {
+    fontSize: 12,
     fontWeight: 600,
     color: 'var(--text-primary)',
+  },
+  poolTrack: {
+    marginTop: 8,
+    width: '100%',
+    height: 4,
+    background: 'var(--bg-elevated)',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  poolBar: {
+    height: '100%',
+    background: 'linear-gradient(90deg, var(--green), var(--tertiary))',
+    borderRadius: 4,
+    transition: 'width 0.3s ease',
+  },
+  poolDropdown: {
+    marginTop: 10,
+    paddingTop: 10,
+    borderTop: '1px solid var(--border)',
+  },
+  poolDropdownHeader: {
+    fontSize: 10,
+    fontWeight: 700,
+    color: 'var(--text-muted)',
+    textTransform: 'uppercase',
+    letterSpacing: '0.05em',
+    marginBottom: 6,
+  },
+  poolDropdownItem: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: 8,
     padding: '4px 0',
   },
-  titleChevron: {
+  poolDropdownItemDot: {
+    width: 5,
+    height: 5,
+    borderRadius: '50%',
+    background: 'var(--green)',
+    flexShrink: 0,
+    marginTop: 5,
+  },
+  poolDropdownInfo: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 1,
+    minWidth: 0,
+  },
+  poolDropdownTitle: {
+    fontSize: 12,
+    fontWeight: 500,
+    color: 'var(--text-primary)',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  },
+  poolDropdownProject: {
     fontSize: 10,
     color: 'var(--text-muted)',
+  },
+  dreamBadge: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 6,
+    padding: '10px 14px',
+    borderRadius: 'var(--radius-lg)',
+    background: 'var(--purple-light-bg)',
+    color: 'var(--purple)',
+    animation: 'gentle-pulse 3s ease-in-out infinite',
+    marginTop: 6,
+  },
+
+  // ── Main ──
+  main: {
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
+    minWidth: 0,
+    overflow: 'hidden',
+  },
+  topBar: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '0 28px',
+    height: 52,
+    flexShrink: 0,
+  },
+  topBarLeft: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 12,
+  },
+  topBarRight: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 4,
+  },
+  iconBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: '50%',
+    border: 'none',
+    background: 'none',
+    color: 'var(--text-secondary)',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    transition: 'background 0.15s',
+  },
+  boardHeader: {
+    padding: '8px 28px 16px',
+  },
+  boardTitle: {
+    fontFamily: 'var(--font-headline)',
+    fontSize: 32,
+    fontWeight: 800,
+    color: 'var(--text-primary)',
+    letterSpacing: '-0.02em',
+    lineHeight: 1.2,
+    marginBottom: 4,
+  },
+  boardSubtitle: {
+    fontSize: 13,
+    color: 'var(--text-secondary)',
+  },
+  boardArea: {
+    flex: 1,
+    overflow: 'hidden',
+  },
+
+  // ── Project Selector ──
+  projectBtn: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 6,
+    padding: '6px 12px',
+    borderRadius: 'var(--radius-lg)',
+    border: 'none',
+    background: 'var(--bg-sidebar)',
+    fontSize: 13,
+    fontWeight: 500,
+    color: 'var(--text-primary)',
+    cursor: 'pointer',
+    transition: 'background 0.15s',
   },
   projectDropdown: {
     position: 'absolute',
     top: '100%',
     left: 0,
-    marginTop: 6,
+    marginTop: 4,
     minWidth: 240,
     background: 'var(--bg-surface)',
-    border: '1px solid var(--border)',
-    borderRadius: 8,
-    boxShadow: 'var(--shadow-lg)',
+    borderRadius: 'var(--radius-lg)',
+    boxShadow: 'var(--shadow-dropdown)',
     zIndex: 100,
     overflow: 'hidden',
+    padding: '4px 0',
   },
   projectOption: {
     display: 'flex',
@@ -345,10 +667,11 @@ const styles = {
     color: 'var(--text-secondary)',
     textAlign: 'left',
     gap: 1,
+    transition: 'background 0.1s',
   },
   projectOptionActive: {
-    background: 'var(--blue-bg)',
-    color: 'var(--blue)',
+    background: 'var(--green-bg)',
+    color: 'var(--green)',
     fontWeight: 500,
   },
   projectOptionName: {
@@ -368,6 +691,7 @@ const styles = {
   projectDivider: {
     height: 1,
     background: 'var(--border)',
+    margin: '4px 0',
   },
   projectManageBtn: {
     width: '100%',
@@ -376,123 +700,13 @@ const styles = {
     background: 'none',
     cursor: 'pointer',
     fontSize: 13,
-    color: 'var(--purple)',
+    color: 'var(--green)',
     textAlign: 'left',
     fontWeight: 500,
+    transition: 'background 0.1s',
   },
-  title: {
-    fontSize: 18,
-    fontWeight: 600,
-    color: 'var(--text-primary)',
-  },
-  headerRight: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 8,
-  },
-  dreamBadge: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 4,
-    fontSize: 12,
-    padding: '4px 10px',
-    borderRadius: 12,
-    background: 'var(--purple-light-bg)',
-    color: 'var(--purple)',
-    border: '1px solid var(--purple-border)',
-    animation: 'pulse 2s ease-in-out infinite',
-  },
-  dreamIcon: {
-    fontSize: 14,
-  },
-  badge: {
-    fontSize: 12,
-    padding: '4px 10px',
-    borderRadius: 12,
-    background: 'var(--blue-bg)',
-    color: 'var(--blue)',
-    border: '1px solid var(--blue-border)',
-  },
-  themeBtn: {
-    padding: '6px 10px',
-    borderRadius: 6,
-    border: '1px solid var(--border)',
-    background: 'var(--bg-surface)',
-    fontSize: 16,
-    cursor: 'pointer',
-    lineHeight: 1,
-  },
-  btn: {
-    padding: '6px 14px',
-    borderRadius: 6,
-    border: '1px solid var(--border)',
-    background: 'var(--bg-surface)',
-    color: 'var(--text-secondary)',
-    fontSize: 13,
-    cursor: 'pointer',
-  },
-  btnPrimary: {
-    background: 'var(--green)',
-    borderColor: 'var(--green-dark)',
-    color: 'var(--text-on-accent)',
-  },
-  body: {
-    display: 'flex',
-    flex: 1,
-    overflow: 'hidden',
-  },
-  poolDropdown: {
-    position: 'absolute',
-    top: 'calc(100% + 6px)',
-    right: 0,
-    minWidth: 220,
-    maxWidth: 320,
-    background: 'var(--bg-surface)',
-    border: '1px solid var(--border)',
-    borderRadius: 8,
-    boxShadow: 'var(--shadow-lg)',
-    zIndex: 100,
-    padding: '4px 0',
-  },
-  poolDropdownHeader: {
-    fontSize: 11,
-    fontWeight: 600,
-    color: 'var(--text-muted)',
-    textTransform: 'uppercase',
-    letterSpacing: '0.05em',
-    padding: '6px 12px 4px',
-  },
-  poolDropdownItem: {
-    display: 'flex',
-    alignItems: 'flex-start',
-    gap: 8,
-    padding: '6px 12px',
-    fontSize: 13,
-    color: 'var(--text-primary)',
-  },
-  poolDropdownDot: {
-    width: 6,
-    height: 6,
-    borderRadius: '50%',
-    background: 'var(--green)',
-    flexShrink: 0,
-    marginTop: 6,
-  },
-  poolDropdownInfo: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 1,
-    minWidth: 0,
-  },
-  poolDropdownTitle: {
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-  },
-  poolDropdownProject: {
-    fontSize: 11,
-    color: 'var(--text-muted)',
-  },
+
+  // ── Multi-select bar ──
   multiBar: {
     position: 'fixed',
     bottom: 24,
@@ -502,10 +716,9 @@ const styles = {
     alignItems: 'center',
     gap: 10,
     padding: '10px 20px',
-    borderRadius: 12,
+    borderRadius: 'var(--radius-xl)',
     background: 'var(--bg-surface)',
-    border: '1px solid var(--border)',
-    boxShadow: 'var(--shadow-lg, 0 8px 32px rgba(0,0,0,0.2))',
+    boxShadow: 'var(--shadow-lg)',
     zIndex: 50,
   },
   multiBarText: {
@@ -515,23 +728,22 @@ const styles = {
   },
   multiBarBtn: {
     padding: '6px 14px',
-    borderRadius: 6,
-    border: '1px solid var(--blue-border)',
-    background: 'var(--blue-bg)',
-    color: 'var(--blue)',
+    borderRadius: 'var(--radius-sm)',
+    border: 'none',
+    background: 'var(--green-bg)',
+    color: 'var(--green)',
     fontSize: 13,
     fontWeight: 500,
     cursor: 'pointer',
   },
   multiBarDeleteBtn: {
-    background: 'var(--red-alpha, rgba(248,81,73,0.1))',
-    borderColor: 'var(--red)',
+    background: 'var(--red-alpha)',
     color: 'var(--red)',
   },
   multiBarCancelBtn: {
     padding: '6px 14px',
-    borderRadius: 6,
-    border: '1px solid var(--border)',
+    borderRadius: 'var(--radius-sm)',
+    border: 'none',
     background: 'var(--bg-elevated)',
     color: 'var(--text-muted)',
     fontSize: 13,

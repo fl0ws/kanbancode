@@ -12,6 +12,7 @@ export default function TaskCard({ task, color, isDragging = false }) {
   const isMultiSelected = selectedCardIds.has(task.id);
   const isRunning = poolStatus.running?.includes(task.id);
   const isQueued = poolStatus.queued?.includes(task.id);
+  const isDone = task.column === 'done';
 
   function handleClick(e) {
     if (e.ctrlKey || e.metaKey) {
@@ -26,24 +27,61 @@ export default function TaskCard({ task, color, isDragging = false }) {
     <div
       style={{
         ...styles.card,
-        background: isMultiSelected ? color + '25' : color + '12',
-        borderColor: isMultiSelected ? color : (isSelected ? color : color + '30'),
+        ...(isSelected || isMultiSelected ? styles.cardSelected : {}),
+        ...(isDone ? styles.cardDone : {}),
         opacity: isDragging ? 0.5 : 1,
       }}
       onClick={handleClick}
     >
-      <div style={styles.titleRow}>
-        <span style={{ ...styles.dot, background: color }} />
-        <span style={styles.title}>{task.title}</span>
-      </div>
-      {task.description && (
-        <p style={styles.desc}>{task.description.slice(0, 100)}{task.description.length > 100 ? '...' : ''}</p>
+      {/* Left accent bar */}
+      <div style={{
+        ...styles.accent,
+        ...(isRunning ? { opacity: 1, background: 'var(--purple)' } :
+            isSelected || isMultiSelected ? { opacity: 1, background: color } : {}),
+      }} />
+
+      {/* Status tag row */}
+      {(isRunning || isQueued || task.needs_input === 1) && (
+        <div style={styles.tagRow}>
+          {isRunning && (
+            <span style={styles.runningTag}>
+              <span style={styles.runningDot} />
+              Running
+            </span>
+          )}
+          {isQueued && <span style={styles.queuedTag}>Queued</span>}
+          {task.needs_input === 1 && (
+            <span style={styles.inputTag}>
+              <span className="material-symbols-outlined" style={{ fontSize: 12 }}>priority_high</span>
+              Needs Input
+            </span>
+          )}
+        </div>
       )}
+
+      {isDone && (
+        <div style={styles.tagRow}>
+          <span style={styles.doneTag}>Done</span>
+          <div style={{ flex: 1 }} />
+          <span className="material-symbols-outlined" style={{ fontSize: 16, color: 'var(--tertiary)' }}>check_circle</span>
+        </div>
+      )}
+
+      <span style={{
+        ...styles.title,
+        ...(isDone ? styles.titleDone : {}),
+      }}>{task.title}</span>
+
+      {task.description && (
+        <p style={{
+          ...styles.desc,
+          ...(isDone ? { color: 'var(--text-muted)' } : {}),
+        }}>{task.description.slice(0, 100)}{task.description.length > 100 ? '...' : ''}</p>
+      )}
+
       <div style={styles.footer}>
-        {isRunning && <span style={{ ...styles.tag, ...styles.runningTag }}>Running</span>}
-        {isQueued && <span style={{ ...styles.tag, ...styles.queuedTag }}>Queued</span>}
-        {task.needs_input === 1 && <span style={{ ...styles.tag, ...styles.inputTag }}>Needs Input</span>}
-        {task.updated_at && <span style={styles.timeTag}>{formatRelativeTime(task.updated_at)}</span>}
+        <span className="material-symbols-outlined" style={{ fontSize: 13, color: 'var(--text-muted)' }}>schedule</span>
+        <span style={styles.timeTag}>{task.updated_at ? formatRelativeTime(task.updated_at) : ''}</span>
       </div>
     </div>
   );
@@ -67,70 +105,120 @@ function formatRelativeTime(ts) {
 const styles = {
   card: {
     background: 'var(--bg-surface)',
-    border: '1px solid var(--border)',
-    borderRadius: 8,
-    padding: '10px 12px',
+    borderRadius: 'var(--radius-lg)',
+    padding: '14px 16px',
+    paddingLeft: 20,
     cursor: 'pointer',
-    transition: 'border-color 0.15s, box-shadow 0.15s',
-    boxShadow: 'var(--shadow-xs)',
+    transition: 'transform 0.15s, box-shadow 0.15s',
+    position: 'relative',
     overflow: 'hidden',
   },
-  titleRow: {
+  cardSelected: {
+    boxShadow: 'var(--shadow-md)',
+  },
+  cardDone: {
+    opacity: 0.75,
+  },
+  accent: {
+    position: 'absolute',
+    left: 0,
+    top: 12,
+    bottom: 12,
+    width: 3,
+    borderRadius: '0 3px 3px 0',
+    opacity: 0,
+    transition: 'opacity 0.15s',
+  },
+  tagRow: {
     display: 'flex',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
+    marginBottom: 6,
   },
-  dot: {
-    width: 8,
-    height: 8,
+  runningTag: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 5,
+    fontSize: 10,
+    fontWeight: 700,
+    padding: '2px 8px',
+    borderRadius: 6,
+    background: 'var(--purple-bg)',
+    color: 'var(--purple)',
+    textTransform: 'uppercase',
+    letterSpacing: '0.05em',
+  },
+  runningDot: {
+    width: 5,
+    height: 5,
     borderRadius: '50%',
-    flexShrink: 0,
+    background: 'var(--purple)',
+    animation: 'gentle-pulse 2.5s ease-in-out infinite',
+  },
+  queuedTag: {
+    fontSize: 10,
+    fontWeight: 700,
+    padding: '2px 8px',
+    borderRadius: 6,
+    background: 'var(--bg-elevated)',
+    color: 'var(--text-secondary)',
+    textTransform: 'uppercase',
+    letterSpacing: '0.05em',
+  },
+  inputTag: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 3,
+    fontSize: 10,
+    fontWeight: 700,
+    padding: '2px 8px',
+    borderRadius: 6,
+    background: 'var(--orange-bg)',
+    color: 'var(--orange)',
+    textTransform: 'uppercase',
+    letterSpacing: '0.05em',
+  },
+  doneTag: {
+    fontSize: 10,
+    fontWeight: 700,
+    padding: '2px 8px',
+    borderRadius: 6,
+    background: 'var(--bg-highest)',
+    color: 'var(--text-secondary)',
+    textTransform: 'uppercase',
+    letterSpacing: '0.05em',
   },
   title: {
-    fontSize: 13,
-    fontWeight: 500,
+    fontFamily: 'var(--font-headline)',
+    fontSize: 14,
+    fontWeight: 700,
     color: 'var(--text-primary)',
     lineHeight: 1.3,
     overflowWrap: 'break-word',
     wordBreak: 'break-word',
+    display: 'block',
+    marginBottom: 4,
+  },
+  titleDone: {
+    color: 'var(--text-secondary)',
+    textDecoration: 'line-through',
+    textDecorationColor: 'var(--text-muted)',
   },
   desc: {
-    fontSize: 12,
-    color: 'var(--text-tertiary)',
+    fontSize: 13,
+    color: 'var(--text-secondary)',
     overflowWrap: 'break-word',
     wordBreak: 'break-word',
-    marginTop: 6,
-    lineHeight: 1.4,
+    lineHeight: 1.5,
+    marginBottom: 10,
   },
   footer: {
     display: 'flex',
-    gap: 6,
-    marginTop: 8,
-    flexWrap: 'wrap',
-  },
-  tag: {
-    fontSize: 11,
-    padding: '2px 6px',
-    borderRadius: 4,
-    background: 'var(--bg-hover)',
-    color: 'var(--text-tertiary)',
-  },
-  runningTag: {
-    background: 'var(--purple-bg)',
-    color: 'var(--purple)',
-  },
-  queuedTag: {
-    background: 'var(--orange-bg)',
-    color: 'var(--orange-dark)',
-  },
-  inputTag: {
-    background: 'var(--yellow)',
-    color: 'var(--text-primary)',
-    fontWeight: 600,
+    alignItems: 'center',
+    gap: 4,
   },
   timeTag: {
-    fontSize: 10,
+    fontSize: 11,
     color: 'var(--text-muted)',
-    marginLeft: 'auto',
   },
 };

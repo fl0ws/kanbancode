@@ -179,8 +179,7 @@ const styles = {
     marginTop: 0,
     display: 'flex',
     flexDirection: 'column',
-    borderRadius: 10,
-    border: '1px solid var(--border)',
+    borderRadius: 'var(--radius-lg)',
     overflow: 'hidden',
     background: 'var(--bg-elevated)',
     flex: 1,
@@ -188,8 +187,7 @@ const styles = {
   },
   tabs: {
     display: 'flex',
-    borderBottom: '1px solid var(--border)',
-    background: 'var(--bg-input)',
+    background: 'var(--bg-sidebar)',
     flexShrink: 0,
   },
   tab: {
@@ -197,6 +195,7 @@ const styles = {
     padding: '8px 0',
     fontSize: 12,
     fontWeight: 500,
+    fontFamily: 'var(--font-headline)',
     color: 'var(--text-muted)',
     background: 'none',
     borderWidth: 0,
@@ -213,14 +212,14 @@ const styles = {
     gap: 6,
   },
   tabActive: {
-    color: 'var(--text-primary)',
-    borderBottomColor: 'var(--blue)',
+    color: 'var(--green)',
+    borderBottomColor: 'var(--green)',
   },
   tabPulse: {
     width: 6,
     height: 6,
     borderRadius: '50%',
-    background: 'var(--green, #4CAF50)',
+    background: 'var(--green)',
     animation: 'pulse 1.5s ease-in-out infinite',
   },
   scrollArea: {
@@ -246,6 +245,9 @@ const styles = {
     margin: 0,
     fontFamily: "'Cascadia Code', 'Fira Code', 'Consolas', monospace",
     fontStyle: 'italic',
+    background: 'var(--purple-bg)',
+    padding: 12,
+    borderRadius: 'var(--radius-md)',
   },
 
   // Chat bubbles
@@ -259,8 +261,8 @@ const styles = {
     width: 36,
     height: 36,
     borderRadius: '50%',
-    background: 'var(--green-bg)',
-    color: 'var(--green)',
+    background: 'var(--purple-bg)',
+    color: 'var(--purple)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -269,22 +271,23 @@ const styles = {
     flexShrink: 0,
   },
   userAvatar: {
-    background: 'var(--blue-bg)',
-    color: 'var(--blue)',
+    background: 'var(--green-bg)',
+    color: 'var(--green)',
   },
   bubble: {
     maxWidth: '80%',
     padding: '8px 12px',
-    borderRadius: 14,
+    borderRadius: 'var(--radius-lg)',
     fontSize: 13,
     lineHeight: 1.5,
     whiteSpace: 'pre-wrap',
     wordBreak: 'break-word',
     color: 'var(--text-primary)',
-    boxShadow: '0 2px 6px rgba(0,0,0,0.16), 0 1px 3px rgba(0,0,0,0.12)',
+    boxShadow: 'var(--shadow-sm)',
   },
   claudeBubble: {
-    background: 'var(--bg-input)',
+    background: 'var(--bg-sidebar)',
+    color: 'var(--text-primary)',
     borderBottomLeftRadius: 4,
   },
   questionBubble: {
@@ -295,10 +298,10 @@ const styles = {
     alignItems: 'center',
     gap: 10,
     padding: '10px 16px',
-    borderRadius: 14,
+    borderRadius: 'var(--radius-lg)',
     borderBottomLeftRadius: 4,
-    background: 'var(--bg-input)',
-    boxShadow: '0 2px 6px rgba(0,0,0,0.16), 0 1px 3px rgba(0,0,0,0.12)',
+    background: 'var(--purple-bg)',
+    boxShadow: 'var(--shadow-sm)',
   },
   spinner: {
     width: 16,
@@ -306,8 +309,8 @@ const styles = {
     borderRadius: '50%',
     borderWidth: 2,
     borderStyle: 'solid',
-    borderColor: 'var(--border)',
-    borderTopColor: 'var(--blue)',
+    borderColor: 'rgba(0,0,0,0.08)',
+    borderTopColor: 'var(--purple)',
     animation: 'spin 0.8s linear infinite',
     flexShrink: 0,
   },
@@ -317,8 +320,8 @@ const styles = {
     fontStyle: 'italic',
   },
   userBubble: {
-    background: 'var(--blue)',
-    color: '#fff',
+    background: 'linear-gradient(135deg, var(--green), var(--green-dark))',
+    color: 'var(--text-on-accent)',
     borderBottomRightRadius: 4,
   },
   messageText: {
@@ -329,6 +332,17 @@ const styles = {
     fontSize: 10,
     color: 'var(--text-muted)',
     marginTop: 4,
+  },
+
+  // Author labels
+  authorLabel: {
+    fontSize: 10,
+    fontWeight: 700,
+    textTransform: 'uppercase',
+    letterSpacing: '0.05em',
+  },
+  claudeAuthorLabel: {
+    color: 'var(--purple)',
   },
 
   // Log entries
@@ -347,7 +361,7 @@ const styles = {
   },
   logMessage: {
     fontSize: 12,
-    color: 'var(--text-tertiary)',
+    color: 'var(--text-muted)',
     flex: 1,
   },
   logTime: {

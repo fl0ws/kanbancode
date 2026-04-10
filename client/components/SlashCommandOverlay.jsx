@@ -82,7 +82,7 @@ export default function SlashCommandOverlay({ commands, onSelect, onClose, filte
             onClick={() => onSelect(cmd)}
             onMouseEnter={() => setSelectedIndex(i)}
           >
-            <span style={styles.name}>/{cmd.name}</span>
+            <span style={styles.name}><span style={styles.slash}>/</span>{cmd.name}</span>
             <span style={styles.desc}>{cmd.description}</span>
           </div>
         ))}
@@ -94,12 +94,14 @@ export default function SlashCommandOverlay({ commands, onSelect, onClose, filte
 const styles = {
   list: {
     background: 'var(--bg-surface)',
-    border: '1px solid var(--border)',
-    borderRadius: 8,
-    boxShadow: 'var(--shadow-lg, 0 8px 24px rgba(0,0,0,0.15))',
+    borderRadius: 'var(--radius-lg)',
+    boxShadow: 'var(--shadow-dropdown)',
     maxHeight: 200,
     overflowY: 'auto',
-    padding: '4px 0',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 2,
+    padding: 4,
   },
   item: {
     display: 'flex',
@@ -107,19 +109,23 @@ const styles = {
     gap: 10,
     padding: '8px 12px',
     cursor: 'pointer',
-    transition: 'background 0.1s',
+    transition: 'background 0.15s',
+    borderRadius: 'var(--radius-md)',
   },
   itemActive: {
-    background: 'var(--blue-bg)',
+    background: 'var(--bg-elevated)',
   },
   name: {
     fontSize: 13,
     fontWeight: 600,
-    color: 'var(--blue)',
+    color: 'var(--text-primary)',
     flexShrink: 0,
   },
+  slash: {
+    color: 'var(--green)',
+  },
   desc: {
-    fontSize: 12,
+    fontSize: 11,
     color: 'var(--text-muted)',
     overflow: 'hidden',
     textOverflow: 'ellipsis',

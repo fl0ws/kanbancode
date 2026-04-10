@@ -14,10 +14,10 @@ import Column from './Column.jsx';
 import TaskCard from './TaskCard.jsx';
 
 const COLUMNS = [
-  { id: 'not_started', label: 'Not Started', color: '#9E9E9E' },
-  { id: 'claude', label: 'Claude', color: '#7C4DFF' },
-  { id: 'your_turn', label: 'Your Turn', color: '#FF9800' },
-  { id: 'done', label: 'Done', color: '#4CAF50' },
+  { id: 'not_started', label: 'Not Started', color: 'var(--text-secondary)' },
+  { id: 'claude', label: 'Claude', color: 'var(--purple)' },
+  { id: 'your_turn', label: 'Your Turn', color: 'var(--orange)' },
+  { id: 'done', label: 'Done', color: 'var(--tertiary)' },
 ];
 
 function customCollisionDetection(args) {
@@ -63,10 +63,12 @@ export default function Board({ onAddTask }) {
 
 const styles = {
   board: {
-    display: 'flex',
-    gap: 12,
-    padding: 16,
+    display: 'grid',
+    gridTemplateColumns: 'repeat(4, 1fr)',
+    gap: 20,
+    padding: '0 28px 28px',
     height: '100%',
     overflowX: 'auto',
+    alignContent: 'start',
   },
 };
