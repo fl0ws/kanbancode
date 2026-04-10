@@ -24,6 +24,7 @@ function useZoom() {
 
 export default function App() {
   const [showCreate, setShowCreate] = useState(false);
+  const [createDraft, setCreateDraft] = useState({ title: '', description: '' });
   const [showArchive, setShowArchive] = useState(false);
   const [showCommands, setShowCommands] = useState(false);
   const [showQuickQuestion, setShowQuickQuestion] = useState(false);
@@ -76,12 +77,13 @@ export default function App() {
     fetchPoolStatus().then(setPoolStatus);
   }, []);
 
-  // Reload tasks when active project changes
+  // Reload tasks and update title when active project changes
   useEffect(() => {
     if (activeProjectId) {
       fetchTasks(activeProjectId).then(setTasks);
     }
-  }, [activeProjectId]);
+    document.title = activeProject ? `CCK: ${activeProject.name}` : 'Claude Code Kanban';
+  }, [activeProjectId, activeProject?.name]);
 
   const showConcurrencyPrompt = poolStatus.maxConcurrency === null;
 
@@ -118,7 +120,7 @@ export default function App() {
       {selectedTaskId && (
         <TaskDetail taskId={selectedTaskId} />
       )}
-      {showCreate && <CreateTaskModal onClose={() => setShowCreate(false)} />}
+      {showCreate && <CreateTaskModal onClose={() => setShowCreate(false)} draft={createDraft} setDraft={setCreateDraft} />}
       {showArchive && <ArchiveModal onClose={() => setShowArchive(false)} />}
       {showSettings && <SettingsModal onClose={() => setShowSettings(false)} zoom={zoom} setZoom={setZoom} />}
       {showManageProjects && <ManageProjectsModal onClose={() => setShowManageProjects(false)} />}

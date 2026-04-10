@@ -1,27 +1,43 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { createTask, fetchCommands } from '../api.js';
+import { createTask, moveTask, fetchCommands } from '../api.js';
 import { useStore } from '../store.js';
+import { useAutoResize } from '../hooks/useAutoResize.js';
 import SlashCommandOverlay from './SlashCommandOverlay.jsx';
 
-export default function CreateTaskModal({ onClose }) {
+export default function CreateTaskModal({ onClose, draft, setDraft }) {
   const activeProjectId = useStore(s => s.activeProjectId);
 
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
+  const [title, setTitle] = useState(draft?.title || '');
+  const [description, setDescription] = useState(draft?.description || '');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [commands, setCommands] = useState([]);
   const [showSlash, setShowSlash] = useState(false);
   const [slashFilter, setSlashFilter] = useState('');
   const descRef = useRef(null);
+  const { handleInput: handleDescResize } = useAutoResize(20);
 
   useEffect(() => {
     fetchCommands().then(setCommands).catch(() => {});
   }, []);
 
+  // Sync draft on changes
+  useEffect(() => {
+    setDraft({ title, description });
+  }, [title, description]);
+
+  function handleClear() {
+    setTitle('');
+    setDescription('');
+    if (descRef.current) {
+      descRef.current.style.height = 'auto';
+    }
+  }
+
   function handleDescChange(e) {
     const val = e.target.value;
     setDescription(val);
+    handleDescResize(e);
 
     // Detect / at start of line or after newline
     const cursorPos = e.target.selectionStart;
@@ -47,21 +63,30 @@ export default function CreateTaskModal({ onClose }) {
     const newDesc = before + cmd.template + textAfter;
     setDescription(newDesc);
     setShowSlash(false);
-    // Focus back on textarea
-    setTimeout(() => descRef.current?.focus(), 0);
+    // Resize textarea to fit new content, then focus
+    setTimeout(() => {
+      if (descRef.current) {
+        descRef.current.style.height = 'auto';
+        descRef.current.style.height = Math.min(descRef.current.scrollHeight, 400) + 'px';
+        descRef.current.focus();
+      }
+    }, 0);
   }
 
-  async function handleSubmit(e) {
-    e.preventDefault();
+  async function handleCreate(sendToClaude = false) {
     if (!title.trim()) return;
     setSubmitting(true);
     setError(null);
     try {
-      await createTask({
+      const task = await createTask({
         title: title.trim(),
         description,
         project_id: activeProjectId,
       });
+      if (sendToClaude && task?.id) {
+        await moveTask(task.id, 'claude');
+      }
+      setDraft({ title: '', description: '' });
       onClose();
     } catch (err) {
       setError(err.message);
@@ -75,13 +100,18 @@ export default function CreateTaskModal({ onClose }) {
       <div style={styles.modal}>
         <div style={styles.modalHeader}>
           <h2 style={styles.heading}>New Task</h2>
-          <button style={styles.closeBtn} onClick={onClose} title="Close">
+          <div style={styles.headerActions}>
+            {(title || description) && (
+              <button style={styles.clearBtn} onClick={handleClear} title="Clear form">Clear</button>
+            )}
+            <button style={styles.closeBtn} onClick={onClose} title="Close">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
             </svg>
           </button>
+          </div>
         </div>
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={e => { e.preventDefault(); handleCreate(false); }} style={styles.form}>
           <label style={styles.label}>
             Title
             <input
@@ -101,13 +131,14 @@ export default function CreateTaskModal({ onClose }) {
                 value={description}
                 onChange={handleDescChange}
                 placeholder='Details, requirements, context... Type "/" for commands'
-                rows={4}
+                rows={2}
               />
               {showSlash && (
                 <SlashCommandOverlay
                   commands={commands}
                   filter={slashFilter}
                   onSelect={handleSelectCommand}
+                  anchorRef={descRef}
                   onClose={() => setShowSlash(false)}
                 />
               )}
@@ -116,8 +147,11 @@ export default function CreateTaskModal({ onClose }) {
           {error && <p style={styles.error}>{error}</p>}
           <div style={styles.actions}>
             <button type="button" style={styles.btn} onClick={onClose}>Cancel</button>
-            <button type="submit" style={{ ...styles.btn, ...styles.btnPrimary }} disabled={submitting || !title.trim()}>
-              {submitting ? 'Creating...' : 'Create Task'}
+            <button type="submit" style={{ ...styles.btn, ...styles.btnAdd }} disabled={submitting || !title.trim()}>
+              {submitting ? 'Creating...' : 'Add to task list'}
+            </button>
+            <button type="button" style={{ ...styles.btn, ...styles.btnClaude }} disabled={submitting || !title.trim()} onClick={() => handleCreate(true)}>
+              {submitting ? 'Creating...' : 'Give to Claude'}
             </button>
           </div>
         </form>
@@ -143,7 +177,16 @@ const styles = {
     padding: 24,
     width: 440,
     maxWidth: '90vw',
+    maxHeight: '80vh',
+    display: 'flex',
+    flexDirection: 'column',
     boxShadow: 'var(--shadow-lg)',
+    overflow: 'hidden',
+  },
+  form: {
+    flex: 1,
+    overflowY: 'auto',
+    minHeight: 0,
   },
   modalHeader: {
     display: 'flex',
@@ -155,6 +198,20 @@ const styles = {
     fontSize: 16,
     fontWeight: 600,
     color: 'var(--text-primary)',
+  },
+  headerActions: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 6,
+  },
+  clearBtn: {
+    padding: '4px 10px',
+    borderRadius: 6,
+    border: '1px solid var(--border)',
+    background: 'var(--bg-elevated)',
+    color: 'var(--text-muted)',
+    fontSize: 12,
+    cursor: 'pointer',
   },
   closeBtn: {
     width: 36,
@@ -189,8 +246,10 @@ const styles = {
     outline: 'none',
   },
   textarea: {
-    resize: 'vertical',
+    resize: 'none',
     fontFamily: 'inherit',
+    lineHeight: '20px',
+    overflow: 'hidden',
   },
   descWrapper: {
     position: 'relative',
@@ -215,9 +274,14 @@ const styles = {
     fontSize: 13,
     cursor: 'pointer',
   },
-  btnPrimary: {
+  btnAdd: {
     background: 'var(--green)',
     borderColor: 'var(--green-dark)',
+    color: 'var(--text-on-accent)',
+  },
+  btnClaude: {
+    background: 'var(--purple)',
+    borderColor: 'var(--purple)',
     color: 'var(--text-on-accent)',
   },
 };

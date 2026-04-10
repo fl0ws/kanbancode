@@ -1,9 +1,10 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useStore } from '../store.js';
-import { fetchOutput, moveTask, stopTask, updateTask, logActivity, archiveTask, deleteTask } from '../api.js';
+import { fetchOutput, moveTask, stopTask, updateTask, logActivity, archiveTask, deleteTask, fetchCommands } from '../api.js';
 import { useAutoResize } from '../hooks/useAutoResize.js';
 import ActivityLog from './ActivityLog.jsx';
 import NeedsInputBanner from './NeedsInputBanner.jsx';
+import SlashCommandOverlay from './SlashCommandOverlay.jsx';
 
 const COLUMN_LABELS = {
   not_started: 'Not Started',
@@ -34,11 +35,19 @@ export default function TaskDetail({ taskId }) {
   const setOutput = useStore(s => s.setOutput);
   const poolStatus = useStore(s => s.poolStatus);
   const [reply, setReply] = useState('');
+  const [sending, setSending] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editTitle, setEditTitle] = useState('');
   const [editDesc, setEditDesc] = useState('');
+  const [commands, setCommands] = useState([]);
+  const [showSlash, setShowSlash] = useState(false);
+  const [slashFilter, setSlashFilter] = useState('');
   const replyRef = useRef(null);
   const { handleInput: handleReplyResize, resetHeight } = useAutoResize(5);
+
+  useEffect(() => {
+    fetchCommands().then(setCommands).catch(() => {});
+  }, []);
 
   useEffect(() => {
     fetchOutput(taskId).then(data => {
@@ -75,14 +84,57 @@ export default function TaskDetail({ taskId }) {
     await stopTask(taskId);
   }
 
-  async function handleReply(e) {
+  function handleReplyChange(e) {
+    const val = e.target.value;
+    setReply(val);
+    handleReplyResize(e);
+
+    // Detect / at start of input
+    const cursorPos = e.target.selectionStart;
+    const textBefore = val.slice(0, cursorPos);
+    const lastLineStart = textBefore.lastIndexOf('\n') + 1;
+    const currentLine = textBefore.slice(lastLineStart);
+
+    if (currentLine.startsWith('/')) {
+      setShowSlash(true);
+      setSlashFilter(currentLine.slice(1));
+    } else {
+      setShowSlash(false);
+    }
+  }
+
+  function handleSelectCommand(cmd) {
+    const cursorPos = replyRef.current?.selectionStart || reply.length;
+    const textBefore = reply.slice(0, cursorPos);
+    const textAfter = reply.slice(cursorPos);
+    const lastLineStart = textBefore.lastIndexOf('\n') + 1;
+    const before = reply.slice(0, lastLineStart);
+    setReply(before + cmd.template + textAfter);
+    setShowSlash(false);
+    setTimeout(() => {
+      if (replyRef.current) {
+        replyRef.current.style.height = 'auto';
+        replyRef.current.style.height = Math.min(replyRef.current.scrollHeight, 100) + 'px';
+        replyRef.current.focus();
+      }
+    }, 0);
+  }
+
+  async function handleReply(e, closeAfter = false) {
     e.preventDefault();
     if (!reply.trim()) return;
+    setShowSlash(false);
     await logActivity(taskId, 'user', reply.trim());
     setReply('');
     resetHeight(replyRef.current);
     await moveTask(taskId, 'claude');
-    setSelectedTask(null);
+    if (closeAfter) {
+      setSending(true);
+      setTimeout(() => {
+        setSending(false);
+        setSelectedTask(null);
+      }, 400);
+    }
   }
 
   async function handleArchive() {
@@ -97,8 +149,8 @@ export default function TaskDetail({ taskId }) {
   }
 
   return (
-    <div style={styles.overlay} onClick={() => setSelectedTask(null)}>
-    <div style={styles.panel} onClick={e => e.stopPropagation()}>
+    <div style={{ ...styles.overlay, ...(sending ? styles.overlayFading : {}) }} onClick={() => !sending && setSelectedTask(null)}>
+    <div style={{ ...styles.panel, ...(sending ? styles.panelSending : {}) }} onClick={e => e.stopPropagation()}>
       <div style={styles.panelHeader}>
         <div style={styles.colIndicator}>
           <span style={{ ...styles.dot, background: color }} />
@@ -173,27 +225,38 @@ export default function TaskDetail({ taskId }) {
 
           {task.column === 'your_turn' && (
             <form onSubmit={handleReply} style={styles.replyForm}>
-              <div style={styles.replyRow}>
-                <textarea
-                  ref={replyRef}
-                  style={styles.replyInput}
-                  value={reply}
-                  onChange={e => { setReply(e.target.value); handleReplyResize(e); }}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      if (reply.trim()) handleReply(e);
-                    }
-                  }}
-                  placeholder="Reply to Claude..."
-                  rows={1}
-                />
+              <div style={styles.replyWrapper}>
+                {showSlash && (
+                  <SlashCommandOverlay
+                    commands={commands}
+                    filter={slashFilter}
+                    onSelect={handleSelectCommand}
+                    onClose={() => setShowSlash(false)}
+                    anchorRef={replyRef}
+                  />
+                )}
+                <div style={styles.replyRow}>
+                  <textarea
+                    ref={replyRef}
+                    style={styles.replyInput}
+                    value={reply}
+                    onChange={handleReplyChange}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' && !e.shiftKey && !showSlash) {
+                        e.preventDefault();
+                        if (reply.trim()) handleReply(e, e.ctrlKey || e.metaKey);
+                      }
+                    }}
+                    placeholder='Reply to Claude... Type "/" for commands'
+                    rows={1}
+                  />
                 <button type="submit" style={styles.sendBtn} disabled={!reply.trim()}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <line x1="22" y1="2" x2="11" y2="13" />
                     <polygon points="22 2 15 22 11 13 2 9 22 2" />
                   </svg>
                 </button>
+                </div>
               </div>
             </form>
           )}
@@ -213,6 +276,10 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 100,
+    transition: 'background 0.3s ease',
+  },
+  overlayFading: {
+    background: 'rgba(0,0,0,0)',
   },
   panel: {
     width: 960,
@@ -224,6 +291,12 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     overflow: 'hidden',
+    transition: 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s ease',
+  },
+  panelSending: {
+    transform: 'scale(0.08) translateX(-300%)',
+    opacity: 0,
+    borderRadius: 40,
   },
   panelHeader: {
     display: 'flex',
@@ -359,6 +432,9 @@ const styles = {
   replyForm: {
     flexShrink: 0,
     background: 'var(--bg-surface)',
+  },
+  replyWrapper: {
+    position: 'relative',
   },
   replyRow: {
     display: 'flex',

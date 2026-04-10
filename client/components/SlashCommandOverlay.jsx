@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-export default function SlashCommandOverlay({ commands, onSelect, onClose, filter }) {
+export default function SlashCommandOverlay({ commands, onSelect, onClose, filter, anchorRef }) {
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const ref = useRef(null);
+  const listRef = useRef(null);
+  const overlayRef = useRef(null);
+  const [pos, setPos] = useState({ bottom: 0, left: 0, width: 300 });
 
   const filtered = commands.filter(cmd =>
     cmd.name.includes(filter.toLowerCase()) || cmd.description.toLowerCase().includes(filter.toLowerCase())
@@ -11,6 +13,18 @@ export default function SlashCommandOverlay({ commands, onSelect, onClose, filte
   useEffect(() => {
     setSelectedIndex(0);
   }, [filter]);
+
+  // Position the overlay above the anchor element
+  useEffect(() => {
+    if (anchorRef?.current) {
+      const rect = anchorRef.current.getBoundingClientRect();
+      setPos({
+        bottom: window.innerHeight - rect.top + 4,
+        left: rect.left,
+        width: rect.width,
+      });
+    }
+  }, [anchorRef, filter]);
 
   useEffect(() => {
     function handleKey(e) {
@@ -31,19 +45,33 @@ export default function SlashCommandOverlay({ commands, onSelect, onClose, filte
     return () => window.removeEventListener('keydown', handleKey);
   }, [filtered, selectedIndex]);
 
-  // Scroll selected into view
   useEffect(() => {
-    if (ref.current) {
-      const el = ref.current.children[selectedIndex];
+    if (listRef.current) {
+      const el = listRef.current.children[selectedIndex];
       if (el) el.scrollIntoView({ block: 'nearest' });
     }
   }, [selectedIndex]);
 
   if (filtered.length === 0) return null;
 
+  const style = anchorRef ? {
+    position: 'fixed',
+    bottom: pos.bottom,
+    left: pos.left,
+    width: pos.width,
+    zIndex: 300,
+  } : {
+    position: 'absolute',
+    bottom: '100%',
+    left: 0,
+    right: 0,
+    marginBottom: 4,
+    zIndex: 300,
+  };
+
   return (
-    <div style={styles.overlay}>
-      <div ref={ref} style={styles.list}>
+    <div ref={overlayRef} style={style}>
+      <div ref={listRef} style={styles.list}>
         {filtered.map((cmd, i) => (
           <div
             key={cmd.id}
@@ -64,14 +92,6 @@ export default function SlashCommandOverlay({ commands, onSelect, onClose, filte
 }
 
 const styles = {
-  overlay: {
-    position: 'absolute',
-    bottom: '100%',
-    left: 0,
-    right: 0,
-    marginBottom: 4,
-    zIndex: 10,
-  },
   list: {
     background: 'var(--bg-surface)',
     border: '1px solid var(--border)',
