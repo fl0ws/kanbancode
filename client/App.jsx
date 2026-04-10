@@ -13,6 +13,7 @@ import ManageProjectsModal from './components/ManageProjectsModal.jsx';
 import QuickQuestion from './components/QuickQuestion.jsx';
 import ManageCommandsModal from './components/ManageCommandsModal.jsx';
 import NotificationBell from './components/NotificationBell.jsx';
+import VelocityInsights from './components/VelocityInsights.jsx';
 
 function useZoom() {
   const [zoom, setZoom] = useState(() => Number(localStorage.getItem('kanban_zoom')) || 100);
@@ -24,6 +25,7 @@ function useZoom() {
 }
 
 export default function App() {
+  const [activePage, setActivePage] = useState('board');
   const [showCreate, setShowCreate] = useState(false);
   const [createDraft, setCreateDraft] = useState({ title: '', description: '' });
   const [showArchive, setShowArchive] = useState(false);
@@ -110,7 +112,8 @@ export default function App() {
 
         {/* Navigation */}
         <nav style={styles.nav}>
-          <NavItem icon="dashboard" label="Board" active filled />
+          <NavItem icon="dashboard" label="Board" active={activePage === 'board'} filled onClick={() => setActivePage('board')} />
+          <NavItem icon="analytics" label="Analytics" active={activePage === 'analytics'} filled onClick={() => setActivePage('analytics')} />
           <NavItem icon="inventory_2" label="Archive" onClick={() => setShowArchive(true)} />
           <NavItem icon="terminal" label="Commands" onClick={() => setShowCommands(true)} />
           <NavItem icon="settings" label="Settings" onClick={() => setShowSettings(true)} />
@@ -146,16 +149,29 @@ export default function App() {
           </div>
         </header>
 
-        {/* Board Header */}
-        <div style={styles.boardHeader}>
-          <h1 style={styles.boardTitle}>Kanban Board</h1>
-          <p style={styles.boardSubtitle}>Orchestrate autonomous Claude tasks with precision and calm.</p>
-        </div>
+        {activePage === 'board' && (
+          <>
+            <div style={styles.boardHeader}>
+              <h1 style={styles.boardTitle}>{activeProject?.name || 'Kanban Board'}</h1>
+              {activeProject?.working_dir && <p style={styles.boardSubtitle}>{activeProject.working_dir}</p>}
+            </div>
+            <div style={styles.boardArea}>
+              <Board onAddTask={() => setShowCreate(true)} />
+            </div>
+          </>
+        )}
 
-        {/* Board */}
-        <div style={styles.boardArea}>
-          <Board onAddTask={() => setShowCreate(true)} />
-        </div>
+        {activePage === 'analytics' && (
+          <>
+            <div style={styles.boardHeader}>
+              <h1 style={styles.boardTitle}>Analytics</h1>
+              <p style={styles.boardSubtitle}>{activeProject?.name || 'All projects'}</p>
+            </div>
+            <div style={styles.boardArea}>
+              <VelocityInsights />
+            </div>
+          </>
+        )}
       </main>
 
       {/* ═══ Overlays ═══ */}

@@ -66,7 +66,7 @@ const styles = {
     display: 'grid',
     gridTemplateColumns: 'repeat(4, 1fr)',
     gap: 20,
-    padding: '0 28px 28px',
+    padding: '0 28px 16px',
     height: '100%',
     overflowX: 'auto',
     alignContent: 'start',

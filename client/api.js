@@ -56,6 +56,9 @@ export const createCommand = (data) => request('/commands', { method: 'POST', bo
 export const updateCommand = (id, data) => request(`/commands/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
 export const deleteCommand = (id) => request(`/commands/${id}`, { method: 'DELETE' });
 
+// Analytics
+export const fetchAnalytics = (projectId) => request(`/analytics${projectId ? `?project_id=${projectId}` : ''}`);
+
 // Projects
 export const fetchProjects = () => request('/projects');
 export const createProject = (data) => request('/projects', { method: 'POST', body: JSON.stringify(data) });

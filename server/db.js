@@ -387,6 +387,114 @@ export function deleteCommand(id) {
   run('DELETE FROM commands WHERE id = ? AND builtin = 0', [id]);
 }
 
+// --- Analytics ---
+
+export function getAnalytics(projectId) {
+  const pf = projectId ? ' AND t.project_id = ?' : '';       // aliased as t
+  const pfRaw = projectId ? ' AND project_id = ?' : '';      // no alias
+  const params = projectId ? [projectId] : [];
+
+  // Tasks by column (current state)
+  const columnCounts = {};
+  const countRows = all(
+    `SELECT "column", COUNT(*) as count FROM tasks WHERE archived = 0${pfRaw} GROUP BY "column"`,
+    params
+  );
+  for (const r of countRows) columnCounts[r.column] = r.count;
+
+  // Total tasks (including archived)
+  const totalRow = get(
+    `SELECT COUNT(*) as total FROM tasks WHERE 1=1${pfRaw}`,
+    params
+  );
+
+  // Tasks completed per day (last 14 days) — based on activity_log "moved to done" or tasks currently in done
+  // We use activity_log system messages about moving to done, falling back to updated_at for done tasks
+  const dailyCompleted = all(
+    `SELECT DATE(a.timestamp) as day, COUNT(DISTINCT a.task_id) as count
+     FROM activity_log a
+     JOIN tasks t ON a.task_id = t.id
+     WHERE a.author = 'system'
+       AND (a.message LIKE '%→ Done%' OR a.message LIKE '%→ done%' OR a.message LIKE '%Moved to done%')
+       ${pf}
+       AND a.timestamp >= datetime('now', '-14 days')
+     GROUP BY DATE(a.timestamp)
+     ORDER BY day ASC`,
+    params
+  );
+
+  // If no activity log data, fall back to tasks in done column by updated_at
+  if (dailyCompleted.length === 0) {
+    const fallback = all(
+      `SELECT DATE(t.updated_at) as day, COUNT(*) as count
+       FROM tasks t
+       WHERE t."column" = 'done' AND t.archived = 0
+       ${pf}
+       AND t.updated_at >= datetime('now', '-14 days')
+       GROUP BY DATE(t.updated_at)
+       ORDER BY day ASC`,
+      params
+    );
+    dailyCompleted.push(...fallback);
+  }
+
+  // Average cycle time: time from created_at to when task reached done (via updated_at for done tasks)
+  const cycleTimeRow = get(
+    `SELECT AVG(
+       (julianday(t.updated_at) - julianday(t.created_at)) * 24 * 60
+     ) as avg_minutes,
+     COUNT(*) as completed_count
+     FROM tasks t
+     WHERE t."column" = 'done'${pf}`,
+    params
+  );
+
+  // Tasks completed this week vs last week
+  const thisWeek = get(
+    `SELECT COUNT(*) as count FROM tasks t
+     WHERE t."column" = 'done'${pf}
+     AND t.updated_at >= datetime('now', '-7 days')`,
+    params
+  );
+  const lastWeek = get(
+    `SELECT COUNT(*) as count FROM tasks t
+     WHERE t."column" = 'done'${pf}
+     AND t.updated_at >= datetime('now', '-14 days')
+     AND t.updated_at < datetime('now', '-7 days')`,
+    params
+  );
+
+  // Average Claude rounds per task (count of claude activity entries per done task)
+  const avgRoundsRow = get(
+    `SELECT AVG(rounds) as avg_rounds FROM (
+       SELECT a.task_id, COUNT(*) as rounds
+       FROM activity_log a
+       JOIN tasks t ON a.task_id = t.id
+       WHERE a.author = 'claude'${pf}
+       GROUP BY a.task_id
+     )`,
+    params
+  );
+
+  const thisWeekCount = thisWeek?.count || 0;
+  const lastWeekCount = lastWeek?.count || 0;
+  const weekOverWeekChange = lastWeekCount > 0
+    ? Math.round(((thisWeekCount - lastWeekCount) / lastWeekCount) * 100)
+    : (thisWeekCount > 0 ? 100 : 0);
+
+  return {
+    columnCounts,
+    totalTasks: totalRow?.total || 0,
+    dailyCompleted,
+    avgCycleMinutes: cycleTimeRow?.avg_minutes || 0,
+    completedCount: cycleTimeRow?.completed_count || 0,
+    thisWeekCompleted: thisWeekCount,
+    lastWeekCompleted: lastWeekCount,
+    weekOverWeekChange,
+    avgClaudeRounds: avgRoundsRow?.avg_rounds || 0,
+  };
+}
+
 // Save on process exit
 process.on('exit', () => saveNow());
 process.on('SIGINT', () => { saveNow(); process.exit(0); });

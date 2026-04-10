@@ -221,6 +221,13 @@ router.post('/api/settings', (req, res) => {
   res.json({ ok: true });
 });
 
+// --- Analytics ---
+
+router.get('/api/analytics', (req, res) => {
+  const projectId = req.query.project_id || null;
+  res.json(db.getAnalytics(projectId));
+});
+
 // --- Projects ---
 
 router.get('/api/projects', (req, res) => {
