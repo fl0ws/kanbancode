@@ -14,6 +14,7 @@ import QuickQuestion from './components/QuickQuestion.jsx';
 import ManageCommandsModal from './components/ManageCommandsModal.jsx';
 import NotificationBell from './components/NotificationBell.jsx';
 import VelocityInsights from './components/VelocityInsights.jsx';
+import KeyboardShortcutsModal from './components/KeyboardShortcutsModal.jsx';
 
 function useZoom() {
   const [zoom, setZoom] = useState(() => Number(localStorage.getItem('kanban_zoom')) || 100);
@@ -32,6 +33,7 @@ export default function App() {
   const [showQuickQuestion, setShowQuickQuestion] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showManageProjects, setShowManageProjects] = useState(false);
+  const [showShortcuts, setShowShortcuts] = useState(false);
   const selectedTaskId = useStore(s => s.selectedTaskId);
   const poolStatus = useStore(s => s.poolStatus);
   const isDreaming = useStore(s => s.isDreaming);
@@ -52,6 +54,10 @@ export default function App() {
   // Keyboard shortcuts
   useEffect(() => {
     function handleKeyDown(e) {
+      // Ignore shortcuts when typing in inputs/textareas
+      const tag = e.target.tagName;
+      const isInput = tag === 'INPUT' || tag === 'TEXTAREA' || e.target.isContentEditable;
+
       if (e.ctrlKey && e.code === 'Space') {
         e.preventDefault();
         setShowQuickQuestion(prev => !prev);
@@ -62,6 +68,16 @@ export default function App() {
           s.setSelectedTask(null);
         } else {
           clearCardSelection();
+        }
+      }
+      if (!isInput && !e.ctrlKey && !e.metaKey) {
+        if (e.key === '?') {
+          e.preventDefault();
+          setShowShortcuts(prev => !prev);
+        }
+        if (e.key === 'n' || e.key === 'N') {
+          e.preventDefault();
+          setShowCreate(true);
         }
       }
     }
@@ -146,6 +162,9 @@ export default function App() {
           </div>
           <div style={styles.topBarRight}>
             <NotificationBell />
+            <button style={styles.iconBtn} onClick={() => setShowShortcuts(true)} title="Keyboard shortcuts (?)">
+              <span className="material-symbols-outlined" style={{ fontSize: 20 }}>help</span>
+            </button>
             <button style={styles.iconBtn} onClick={() => setShowSettings(true)} title="Settings">
               <span className="material-symbols-outlined" style={{ fontSize: 20 }}>settings</span>
             </button>
@@ -200,6 +219,7 @@ export default function App() {
       {showCommands && <ManageCommandsModal onClose={() => setShowCommands(false)} />}
       {showQuickQuestion && <QuickQuestion onClose={() => setShowQuickQuestion(false)} />}
       {showConcurrencyPrompt && <ConcurrencyPrompt />}
+      {showShortcuts && <KeyboardShortcutsModal onClose={() => setShowShortcuts(false)} />}
       <MultiSelectBar />
     </div>
   );
