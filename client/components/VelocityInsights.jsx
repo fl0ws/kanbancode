@@ -9,9 +9,9 @@ function formatCycleTime(minutes) {
   return `${(minutes / 1440).toFixed(1)}d`;
 }
 
-function getLast14Days() {
+function getLast7Days() {
   const days = [];
-  for (let i = 13; i >= 0; i--) {
+  for (let i = 6; i >= 0; i--) {
     const d = new Date();
     d.setDate(d.getDate() - i);
     days.push(d.toISOString().split('T')[0]);
@@ -48,7 +48,7 @@ export default function VelocityInsights() {
   if (loading && !data) return null;
   if (!data) return null;
 
-  const days = getLast14Days();
+  const days = getLast7Days();
   const dailyMap = {};
   for (const d of data.dailyCompleted || []) dailyMap[d.day] = d.count;
   const dailyCounts = days.map(d => dailyMap[d] || 0);
@@ -80,7 +80,7 @@ export default function VelocityInsights() {
                     opacity: count > 0 ? (0.3 + (count / maxCount) * 0.7) : 0.3,
                   }} />
                 </div>
-                {i % 2 === 0 && <span style={styles.barLabel}>{getDayLabel(days[i])}</span>}
+                <span style={styles.barLabel}>{getDayLabel(days[i])}</span>
               </div>
             ))}
           </div>
