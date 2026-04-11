@@ -36,14 +36,16 @@ export default function UsageBars({ collapsed }) {
         title={`Session: ${session?.percentUsed ?? '?'}% · Weekly: ${weekly?.percentUsed ?? '?'}%\nAuto-updates every 5 minutes`}
       >
         {session && (
-          <span style={{ ...styles.collapsedPct, color: barColor(session.percentUsed) }}>
-            {session.percentUsed}
-          </span>
+          <div style={styles.collapsedRow}>
+            <span style={styles.collapsedLabel}>S:</span>
+            <span style={{ ...styles.collapsedValue, color: barColor(session.percentUsed) }}>{session.percentUsed}%</span>
+          </div>
         )}
         {weekly && (
-          <span style={{ ...styles.collapsedPct, color: barColor(weekly.percentUsed) }}>
-            {weekly.percentUsed}
-          </span>
+          <div style={styles.collapsedRow}>
+            <span style={styles.collapsedLabel}>W:</span>
+            <span style={{ ...styles.collapsedValue, color: barColor(weekly.percentUsed) }}>{weekly.percentUsed}%</span>
+          </div>
         )}
       </div>
     );
@@ -169,15 +171,26 @@ const styles = {
   collapsedContainer: {
     display: 'flex',
     flexDirection: 'column',
-    alignItems: 'center',
-    gap: 2,
-    padding: '8px 0',
-    marginBottom: 4,
+    gap: 4,
+    padding: '10px 6px',
+    background: 'var(--bg-surface)',
+    borderRadius: 'var(--radius-lg)',
+    marginBottom: 6,
   },
-  collapsedPct: {
+  collapsedRow: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 2,
+  },
+  collapsedLabel: {
+    fontSize: 9,
+    fontWeight: 500,
+    color: 'var(--text-muted)',
+  },
+  collapsedValue: {
     fontSize: 10,
     fontWeight: 700,
     fontFamily: 'var(--font-headline)',
-    lineHeight: 1,
   },
 };
