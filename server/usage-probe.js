@@ -147,6 +147,8 @@ function parseUsageOutput(text) {
     let resetRaw = resetMatch ? resetMatch[1].trim() : '';
     // Strip timezone parenthetical e.g. "(Europe/Copenhagen)"
     resetRaw = resetRaw.replace(/\s*\([^)]*\)\s*/g, '').trim();
+    // Clean up stray characters from ANSI stripping (e.g. leading "s " from mangled "Resets")
+    resetRaw = resetRaw.replace(/^[a-z]\s+/i, '').trim();
     // Convert 12hr to 24hr: "9am" -> "09:00", "12pm" -> "12:00", "1pm" -> "13:00"
     resetRaw = resetRaw.replace(/(\d{1,2})(am|pm)/gi, (_, h, ampm) => {
       let hour = parseInt(h, 10);
