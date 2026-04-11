@@ -206,6 +206,12 @@
       font-size: 20px;
     }
 
+    /* Card context menu dots — show on hover */
+    [style*="overflow: visible"]:hover > [style*="opacity: 0"] { opacity: 1 !important; }
+    [style*="overflow: visible"]:hover > [style*="opacity: 0"]:hover { background: var(--bg-elevated); color: var(--text-secondary); }
+    /* Menu item hover */
+    button[style*="text-align: left"]:hover { background: var(--bg-hover) !important; }
+
     /* Quick Question markdown styles */
     .qq-markdown { font-size: 13px; line-height: 1.6; color: var(--text-primary); }
     .qq-markdown p { margin: 0 0 6px; }

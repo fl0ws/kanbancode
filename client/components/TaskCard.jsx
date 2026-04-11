@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useStore } from '../store.js';
+import { moveTask, archiveTask, deleteTask, stopTask } from '../api.js';
 
 export default function TaskCard({ task, color, isDragging = false }) {
   const setSelectedTask = useStore(s => s.setSelectedTask);
@@ -7,12 +8,24 @@ export default function TaskCard({ task, color, isDragging = false }) {
   const selectedTaskId = useStore(s => s.selectedTaskId);
   const selectedCardIds = useStore(s => s.selectedCardIds);
   const poolStatus = useStore(s => s.poolStatus);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [menuPos, setMenuPos] = useState({ x: 0, y: 0 });
+  const menuRef = useRef(null);
 
   const isSelected = selectedTaskId === task.id;
   const isMultiSelected = selectedCardIds.has(task.id);
   const isRunning = poolStatus.running?.includes(task.id);
   const isQueued = poolStatus.queued?.includes(task.id);
   const isDone = task.column === 'done';
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handle = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false);
+    };
+    document.addEventListener('mousedown', handle);
+    return () => document.removeEventListener('mousedown', handle);
+  }, [menuOpen]);
 
   function handleClick(e) {
     if (e.ctrlKey || e.metaKey) {
@@ -23,6 +36,61 @@ export default function TaskCard({ task, color, isDragging = false }) {
     }
   }
 
+  function handleContextMenu(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    setMenuPos({ x: e.clientX, y: e.clientY });
+    setMenuOpen(true);
+  }
+
+  function handleDotsClick(e) {
+    e.stopPropagation();
+    const rect = e.currentTarget.getBoundingClientRect();
+    setMenuPos({ x: rect.right, y: rect.bottom + 4 });
+    setMenuOpen(o => !o);
+  }
+
+  async function handleAction(action) {
+    setMenuOpen(false);
+    try {
+      switch (action) {
+        case 'open': setSelectedTask(task.id); break;
+        case 'to_claude': await moveTask(task.id, 'claude'); break;
+        case 'to_done': await moveTask(task.id, 'done'); break;
+        case 'to_your_turn': await moveTask(task.id, 'your_turn'); break;
+        case 'to_not_started': await moveTask(task.id, 'not_started'); break;
+        case 'stop': await stopTask(task.id); break;
+        case 'archive': await archiveTask(task.id); break;
+        case 'delete':
+          if (confirm('Permanently delete this task?')) await deleteTask(task.id);
+          break;
+      }
+    } catch (err) {
+      alert(err.message);
+    }
+  }
+
+  // Build menu items based on column
+  const menuItems = [
+    { action: 'open', icon: 'open_in_new', label: 'Open' },
+  ];
+
+  if (task.column === 'not_started') {
+    menuItems.push({ action: 'to_claude', icon: 'smart_toy', label: 'Send to Claude' });
+    menuItems.push({ action: 'to_done', icon: 'check_circle', label: 'Move to Done' });
+  } else if (task.column === 'claude') {
+    menuItems.push({ action: 'stop', icon: 'stop_circle', label: 'Stop', danger: true });
+  } else if (task.column === 'your_turn') {
+    menuItems.push({ action: 'to_claude', icon: 'smart_toy', label: 'Send to Claude' });
+    menuItems.push({ action: 'to_done', icon: 'check_circle', label: 'Move to Done' });
+  } else if (task.column === 'done') {
+    menuItems.push({ action: 'to_not_started', icon: 'replay', label: 'Reopen' });
+  }
+
+  menuItems.push({ divider: true });
+  menuItems.push({ action: 'archive', icon: 'inventory_2', label: 'Archive' });
+  menuItems.push({ action: 'delete', icon: 'delete', label: 'Delete', danger: true });
+
   return (
     <div
       style={{
@@ -32,6 +100,7 @@ export default function TaskCard({ task, color, isDragging = false }) {
         opacity: isDragging ? 0.5 : 1,
       }}
       onClick={handleClick}
+      onContextMenu={handleContextMenu}
     >
       {/* Left accent bar */}
       <div style={{
@@ -56,6 +125,10 @@ export default function TaskCard({ task, color, isDragging = false }) {
               Needs Input
             </span>
           )}
+          <div style={{ flex: 1 }} />
+          <button style={styles.dotsBtn} onClick={handleDotsClick}>
+            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>more_horiz</span>
+          </button>
         </div>
       )}
 
@@ -63,8 +136,17 @@ export default function TaskCard({ task, color, isDragging = false }) {
         <div style={styles.tagRow}>
           <span style={styles.doneTag}>Done</span>
           <div style={{ flex: 1 }} />
-          <span className="material-symbols-outlined" style={{ fontSize: 16, color: 'var(--tertiary)' }}>check_circle</span>
+          <button style={styles.dotsBtn} onClick={handleDotsClick}>
+            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>more_horiz</span>
+          </button>
         </div>
+      )}
+
+      {/* For cards without a tag row, show dots on hover */}
+      {!isRunning && !isQueued && task.needs_input !== 1 && !isDone && (
+        <button style={styles.dotsBtnFloat} onClick={handleDotsClick}>
+          <span className="material-symbols-outlined" style={{ fontSize: 16 }}>more_horiz</span>
+        </button>
       )}
 
       <span style={{
@@ -83,6 +165,37 @@ export default function TaskCard({ task, color, isDragging = false }) {
         <span className="material-symbols-outlined" style={{ fontSize: 13, color: 'var(--text-muted)' }}>schedule</span>
         <span style={styles.timeTag}>{task.updated_at ? formatRelativeTime(task.updated_at) : ''}</span>
       </div>
+
+      {/* Context menu */}
+      {menuOpen && (
+        <div
+          ref={menuRef}
+          style={{
+            ...styles.menu,
+            position: 'fixed',
+            left: menuPos.x,
+            top: menuPos.y,
+          }}
+        >
+          {menuItems.map((item, i) =>
+            item.divider ? (
+              <div key={i} style={styles.menuDivider} />
+            ) : (
+              <button
+                key={item.action}
+                style={{
+                  ...styles.menuItem,
+                  ...(item.danger ? styles.menuItemDanger : {}),
+                }}
+                onClick={() => handleAction(item.action)}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: 16 }}>{item.icon}</span>
+                {item.label}
+              </button>
+            )
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -111,7 +224,7 @@ const styles = {
     cursor: 'pointer',
     transition: 'transform 0.15s, box-shadow 0.15s',
     position: 'relative',
-    overflow: 'hidden',
+    overflow: 'visible',
   },
   cardSelected: {
     boxShadow: 'var(--shadow-md)',
@@ -220,5 +333,71 @@ const styles = {
   timeTag: {
     fontSize: 11,
     color: 'var(--text-muted)',
+  },
+  dotsBtn: {
+    width: 22,
+    height: 22,
+    borderRadius: 'var(--radius-sm)',
+    border: 'none',
+    background: 'none',
+    color: 'var(--text-muted)',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    transition: 'color 0.15s, background 0.15s',
+    flexShrink: 0,
+  },
+  dotsBtnFloat: {
+    position: 'absolute',
+    top: 10,
+    right: 8,
+    width: 22,
+    height: 22,
+    borderRadius: 'var(--radius-sm)',
+    border: 'none',
+    background: 'none',
+    color: 'var(--text-muted)',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    opacity: 0,
+    transition: 'opacity 0.15s',
+  },
+  menu: {
+    zIndex: 300,
+    minWidth: 180,
+    background: 'var(--bg-surface)',
+    borderRadius: 'var(--radius-lg)',
+    boxShadow: 'var(--shadow-dropdown)',
+    padding: '4px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 1,
+  },
+  menuItem: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+    width: '100%',
+    padding: '8px 10px',
+    border: 'none',
+    background: 'none',
+    borderRadius: 'var(--radius-sm)',
+    color: 'var(--text-primary)',
+    fontSize: 12,
+    fontWeight: 500,
+    cursor: 'pointer',
+    textAlign: 'left',
+    transition: 'background 0.1s',
+  },
+  menuItemDanger: {
+    color: 'var(--red)',
+  },
+  menuDivider: {
+    height: 1,
+    background: 'var(--border)',
+    margin: '3px 6px',
   },
 };

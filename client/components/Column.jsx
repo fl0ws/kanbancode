@@ -76,9 +76,6 @@ export default function Column({ columnId, label, color, onAddTask }) {
             <span className="material-symbols-outlined" style={{ fontSize: 14 }}>add</span>
           </button>
         )}
-        <button style={styles.moreBtn}>
-          <span className="material-symbols-outlined" style={{ fontSize: 18 }}>more_horiz</span>
-        </button>
       </div>
       <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>
         <div ref={setNodeRef} style={styles.list}>
@@ -136,18 +133,6 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     transition: 'color 0.15s',
-  },
-  moreBtn: {
-    width: 22,
-    height: 22,
-    borderRadius: 'var(--radius-sm)',
-    border: 'none',
-    background: 'none',
-    color: 'var(--text-muted)',
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   list: {
     flex: 1,
