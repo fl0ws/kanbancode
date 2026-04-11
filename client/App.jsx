@@ -35,6 +35,7 @@ export default function App() {
   const [showManageProjects, setShowManageProjects] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [toast, setToast] = useState(null);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem('kanban_sidebar_collapsed') === 'true');
   const selectedTaskId = useStore(s => s.selectedTaskId);
   const poolStatus = useStore(s => s.poolStatus);
   const isDreaming = useStore(s => s.isDreaming);
@@ -108,6 +109,13 @@ export default function App() {
     document.title = activeProject ? `CCK: ${activeProject.name}` : 'Claude Code Kanban';
   }, [activeProjectId, activeProject?.name]);
 
+  function toggleSidebar() {
+    setSidebarCollapsed(prev => {
+      localStorage.setItem('kanban_sidebar_collapsed', String(!prev));
+      return !prev;
+    });
+  }
+
   function showToast(text, type = 'success') {
     setToast({ text, type, id: Date.now() });
     setTimeout(() => setToast(null), 3000);
@@ -118,40 +126,60 @@ export default function App() {
   return (
     <div style={styles.appLayout}>
       {/* ═══ Sidebar ═══ */}
-      <aside style={styles.sidebar}>
+      <aside style={{
+        ...styles.sidebar,
+        width: sidebarCollapsed ? 60 : 'var(--sidebar-width)',
+        padding: sidebarCollapsed ? '24px 8px' : '24px 16px',
+      }}>
         {/* Brand */}
-        <div style={styles.brand}>
+        <div style={{ ...styles.brand, justifyContent: sidebarCollapsed ? 'center' : 'flex-start' }}>
           <div style={styles.brandIcon}>
             <span className="material-symbols-outlined" style={{ fontSize: 16, color: 'var(--text-on-accent)', fontVariationSettings: "'FILL' 1" }}>grid_view</span>
           </div>
-          <div>
-            <div style={styles.brandTitle}>Claude Code</div>
-            <div style={styles.brandSub}>KANBAN</div>
-          </div>
+          {!sidebarCollapsed && (
+            <div>
+              <div style={styles.brandTitle}>Claude Code</div>
+              <div style={styles.brandSub}>KANBAN</div>
+            </div>
+          )}
         </div>
 
         {/* New Task CTA */}
-        <button style={styles.newTaskBtn} onClick={() => setShowCreate(true)}>
+        <button
+          style={{
+            ...styles.newTaskBtn,
+            padding: sidebarCollapsed ? '10px 0' : '12px 16px',
+          }}
+          onClick={() => setShowCreate(true)}
+          title="New Task"
+        >
           <span className="material-symbols-outlined" style={{ fontSize: 18 }}>add</span>
-          New Task
+          {!sidebarCollapsed && 'New Task'}
         </button>
 
         {/* Navigation */}
         <nav style={styles.nav}>
-          <NavItem icon="dashboard" label="Board" active={activePage === 'board'} filled onClick={() => setActivePage('board')} />
-          <NavItem icon="analytics" label="Analytics" active={activePage === 'analytics'} filled onClick={() => setActivePage('analytics')} />
-          <NavItem icon="inventory_2" label="Archive" active={activePage === 'archive'} filled onClick={() => setActivePage('archive')} />
-          <NavItem icon="terminal" label="Commands" onClick={() => setShowCommands(true)} />
+          <NavItem icon="dashboard" label="Board" active={activePage === 'board'} filled onClick={() => setActivePage('board')} collapsed={sidebarCollapsed} />
+          <NavItem icon="analytics" label="Analytics" active={activePage === 'analytics'} filled onClick={() => setActivePage('analytics')} collapsed={sidebarCollapsed} />
+          <NavItem icon="inventory_2" label="Archive" active={activePage === 'archive'} filled onClick={() => setActivePage('archive')} collapsed={sidebarCollapsed} />
+          <NavItem icon="terminal" label="Commands" onClick={() => setShowCommands(true)} collapsed={sidebarCollapsed} />
         </nav>
 
         {/* Spacer */}
         <div style={{ flex: 1 }} />
 
         {/* Pool Status Widget */}
-        <PoolWidget status={poolStatus} />
+        <PoolWidget status={poolStatus} collapsed={sidebarCollapsed} />
 
         {/* Dreaming indicator */}
-        {isDreaming && <DreamingIndicator />}
+        {isDreaming && <DreamingIndicator collapsed={sidebarCollapsed} />}
+
+        {/* Collapse toggle */}
+        <button style={styles.collapseBtn} onClick={toggleSidebar} title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}>
+          <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
+            {sidebarCollapsed ? 'chevron_right' : 'chevron_left'}
+          </span>
+        </button>
       </aside>
 
       {/* ═══ Main Content ═══ */}
@@ -261,20 +289,23 @@ function Toast({ text, type }) {
   );
 }
 
-function NavItem({ icon, label, active, filled, onClick }) {
+function NavItem({ icon, label, active, filled, onClick, collapsed }) {
   return (
     <button
       style={{
         ...styles.navItem,
         ...(active ? styles.navItemActive : {}),
+        justifyContent: collapsed ? 'center' : 'flex-start',
+        padding: collapsed ? '10px 0' : '10px 14px',
       }}
       onClick={onClick}
+      title={collapsed ? label : undefined}
     >
       <span className="material-symbols-outlined" style={{
         fontSize: 20,
         fontVariationSettings: filled && active ? "'FILL' 1" : "'FILL' 0",
       }}>{icon}</span>
-      <span style={styles.navLabel}>{label}</span>
+      {!collapsed && <span style={styles.navLabel}>{label}</span>}
     </button>
   );
 }
@@ -361,16 +392,16 @@ function ProjectSelector({ projects, activeProject, onSelect, onManage }) {
   );
 }
 
-function DreamingIndicator() {
+function DreamingIndicator({ collapsed }) {
   return (
-    <div style={styles.dreamBadge}>
+    <div style={{ ...styles.dreamBadge, justifyContent: collapsed ? 'center' : 'flex-start' }} title="Consolidating project memory...">
       <span style={{ fontSize: 14 }}>🌙</span>
-      <span style={{ fontSize: 11, fontWeight: 600 }}>Dreaming</span>
+      {!collapsed && <span style={{ fontSize: 11, fontWeight: 600 }}>Dreaming</span>}
     </div>
   );
 }
 
-function PoolWidget({ status }) {
+function PoolWidget({ status, collapsed }) {
   const [open, setOpen] = useState(false);
   const [runningDetails, setRunningDetails] = useState([]);
   const ref = useRef(null);
@@ -404,6 +435,18 @@ function PoolWidget({ status }) {
   function getProjectName(projectId) {
     const p = projects.find(p => p.id === projectId);
     return p?.name || '';
+  }
+
+  if (collapsed) {
+    return (
+      <div style={{ ...styles.poolWidget, padding: '10px 6px', alignItems: 'center' }} title={`${running}/${max} running${queued > 0 ? `, ${queued} queued` : ''}`}>
+        <div style={styles.poolDot} />
+        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>{running}/{max}</span>
+        <div style={{ ...styles.poolTrack, marginTop: 4 }}>
+          <div style={{ ...styles.poolBar, width: `${(running / max) * 100}%` }} />
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -467,6 +510,8 @@ const styles = {
     gap: 4,
     height: '100vh',
     zIndex: 40,
+    transition: 'width 0.2s ease, padding 0.2s ease',
+    overflow: 'hidden',
   },
   brand: {
     display: 'flex',
@@ -655,6 +700,21 @@ const styles = {
     color: 'var(--purple)',
     animation: 'gentle-pulse 3s ease-in-out infinite',
     marginTop: 6,
+  },
+
+  collapseBtn: {
+    width: '100%',
+    padding: '8px 0',
+    marginTop: 8,
+    border: 'none',
+    background: 'none',
+    color: 'var(--text-muted)',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 'var(--radius-sm)',
+    transition: 'color 0.15s',
   },
 
   // ── Main ──
