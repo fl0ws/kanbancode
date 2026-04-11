@@ -87,6 +87,12 @@ export default function Column({ columnId, label, color, onAddTask }) {
             if (!task) return null;
             return <SortableCard key={id} task={task} color={color} />;
           })}
+          {onAddTask && (
+            <button style={styles.addCardBtn} onClick={onAddTask}>
+              <span className="material-symbols-outlined" style={{ fontSize: 14 }}>add</span>
+              Add New Task
+            </button>
+          )}
         </div>
       </SortableContext>
     </div>
@@ -142,6 +148,22 @@ const styles = {
     flexDirection: 'column',
     gap: 8,
     minHeight: 60,
+  },
+  addCardBtn: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    width: '100%',
+    padding: '14px 8px',
+    border: '2px dashed var(--border)',
+    borderRadius: 'var(--radius-lg)',
+    background: 'none',
+    color: 'var(--text-muted)',
+    fontSize: 12,
+    fontWeight: 600,
+    cursor: 'pointer',
+    transition: 'color 0.15s, border-color 0.15s',
   },
   dropHint: {
     padding: '14px 8px',

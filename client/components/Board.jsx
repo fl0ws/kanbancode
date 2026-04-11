@@ -14,7 +14,7 @@ import Column from './Column.jsx';
 import TaskCard from './TaskCard.jsx';
 
 const COLUMNS = [
-  { id: 'not_started', label: 'Not Started', color: 'var(--text-secondary)' },
+  { id: 'not_started', label: 'To Do', color: 'var(--text-secondary)' },
   { id: 'claude', label: 'Claude', color: 'var(--purple)' },
   { id: 'your_turn', label: 'Your Turn', color: 'var(--orange)' },
   { id: 'done', label: 'Done', color: 'var(--tertiary)' },
