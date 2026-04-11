@@ -10,7 +10,7 @@ export default function UsageBars({ collapsed }) {
       const res = await fetch('/api/usage');
       if (!res.ok) throw new Error('Failed');
       const data = await res.json();
-      setUsage(data);
+      if (!data.error) setUsage(data);
     } catch {
       // silently fail
     } finally {
@@ -25,43 +25,22 @@ export default function UsageBars({ collapsed }) {
     return () => clearInterval(interval);
   }, [fetchUsage]);
 
-  // Tick for countdown
-  const [now, setNow] = useState(Date.now());
-  useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), 30000);
-    return () => clearInterval(t);
-  }, []);
-
-  if (!usage?.session) return null;
-
-  const session = usage.session;
-  const resetsAt = session.resetsAt ? session.resetsAt * 1000 : 0;
-  const resetMinutes = resetsAt > now ? Math.ceil((resetsAt - now) / 60000) : 0;
-  const resetLabel = resetMinutes >= 60
-    ? `${Math.floor(resetMinutes / 60)}h ${resetMinutes % 60}m`
-    : `${resetMinutes}m`;
-
-  // Derive a rough progress from time elapsed in the window
-  const windowMs = session.rateLimitType === 'five_hour' ? 5 * 60 * 60 * 1000 : 60 * 60 * 1000;
-  const remaining = resetsAt - now;
-  const elapsed = windowMs - remaining;
-  const pct = Math.max(0, Math.min(100, Math.round((elapsed / windowMs) * 100)));
-
-  const isBlocked = session.status === 'blocked';
-  const barColor = isBlocked ? 'var(--red)' : pct > 80 ? 'var(--orange)' : 'var(--green)';
-  const statusLabel = isBlocked ? 'Rate limited' : session.isUsingOverage ? 'Overage' : 'OK';
+  if (!usage) return null;
+  const { session, weekly } = usage;
+  if (!session && !weekly) return null;
 
   if (collapsed) {
+    const pct = session?.percentUsed ?? weekly?.percentUsed ?? 0;
+    const color = barColor(pct);
     return (
       <div
         style={styles.collapsedContainer}
-        title={`Session: ${statusLabel}${resetMinutes > 0 ? ` — resets in ${resetLabel}` : ''}`}
+        title={`Session: ${session?.percentUsed ?? '?'}% · Weekly: ${weekly?.percentUsed ?? '?'}%`}
       >
         <span className="material-symbols-outlined" style={{
           fontSize: 16,
-          color: barColor,
-          fontVariationSettings: isBlocked ? "'FILL' 1" : "'FILL' 0",
-        }}>{isBlocked ? 'speed' : 'speed'}</span>
+          color,
+        }}>speed</span>
       </div>
     );
   }
@@ -70,29 +49,52 @@ export default function UsageBars({ collapsed }) {
     <div style={styles.container}>
       <div style={styles.header}>
         <span className="material-symbols-outlined" style={{ fontSize: 14, color: 'var(--text-muted)' }}>speed</span>
-        <span style={styles.title}>Rate Limit</span>
+        <span style={styles.title}>Usage</span>
         {loading && <span style={styles.loadingDot} />}
       </div>
 
-      {/* Status line */}
-      <div style={styles.statusRow}>
-        <span style={{ ...styles.statusDot, background: barColor }} />
-        <span style={styles.statusText}>{statusLabel}</span>
-        {resetMinutes > 0 && (
-          <span style={styles.resetText}>resets in {resetLabel}</span>
-        )}
-      </div>
+      {session && (
+        <UsageRow
+          label="Session"
+          percentUsed={session.percentUsed}
+          resetInfo={session.resetInfo}
+        />
+      )}
 
-      {/* Session progress */}
-      <div style={styles.track}>
-        <div style={{ ...styles.bar, width: `${pct}%`, background: barColor }} />
-      </div>
-
-      <div style={styles.windowLabel}>
-        {session.rateLimitType === 'five_hour' ? '5-hour' : 'Hourly'} window
-      </div>
+      {weekly && (
+        <UsageRow
+          label="Weekly"
+          percentUsed={weekly.percentUsed}
+          resetInfo={weekly.resetInfo}
+        />
+      )}
     </div>
   );
+}
+
+function UsageRow({ label, percentUsed, resetInfo }) {
+  const color = barColor(percentUsed);
+
+  return (
+    <div style={styles.row}>
+      <div style={styles.labelRow}>
+        <span style={styles.label}>{label}</span>
+        <span style={{ ...styles.value, color }}>{percentUsed}%</span>
+      </div>
+      <div style={styles.track}>
+        <div style={{ ...styles.bar, width: `${percentUsed}%`, background: color }} />
+      </div>
+      {resetInfo && (
+        <span style={styles.resetLabel}>Resets {resetInfo}</span>
+      )}
+    </div>
+  );
+}
+
+function barColor(pct) {
+  if (pct >= 80) return 'var(--red)';
+  if (pct >= 50) return 'var(--orange)';
+  return 'var(--green)';
 }
 
 const styles = {
@@ -106,7 +108,7 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     gap: 5,
-    marginBottom: 8,
+    marginBottom: 10,
   },
   title: {
     fontSize: 10,
@@ -123,27 +125,24 @@ const styles = {
     marginLeft: 'auto',
     animation: 'gentle-pulse 2s ease-in-out infinite',
   },
-  statusRow: {
+  row: {
+    marginBottom: 8,
+  },
+  labelRow: {
     display: 'flex',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    gap: 6,
-    marginBottom: 6,
+    marginBottom: 4,
   },
-  statusDot: {
-    width: 6,
-    height: 6,
-    borderRadius: '50%',
-    flexShrink: 0,
+  label: {
+    fontSize: 11,
+    color: 'var(--text-secondary)',
+    fontWeight: 500,
   },
-  statusText: {
-    fontSize: 12,
-    fontWeight: 600,
-    color: 'var(--text-primary)',
-  },
-  resetText: {
-    fontSize: 10,
-    color: 'var(--text-muted)',
-    marginLeft: 'auto',
+  value: {
+    fontSize: 11,
+    fontWeight: 700,
+    fontFamily: 'var(--font-headline)',
   },
   track: {
     width: '100%',
@@ -157,13 +156,12 @@ const styles = {
     borderRadius: 4,
     transition: 'width 0.5s ease',
   },
-  windowLabel: {
+  resetLabel: {
     fontSize: 9,
     color: 'var(--text-muted)',
-    marginTop: 4,
+    marginTop: 3,
+    display: 'block',
   },
-
-  // Collapsed
   collapsedContainer: {
     display: 'flex',
     justifyContent: 'center',
