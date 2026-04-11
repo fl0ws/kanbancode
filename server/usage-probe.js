@@ -144,9 +144,20 @@ function parseUsageOutput(text) {
 
     if (!pctMatch) continue;
 
+    let resetRaw = resetMatch ? resetMatch[1].trim() : '';
+    // Strip timezone parenthetical e.g. "(Europe/Copenhagen)"
+    resetRaw = resetRaw.replace(/\s*\([^)]*\)\s*/g, '').trim();
+    // Convert 12hr to 24hr: "9am" -> "09:00", "12pm" -> "12:00", "1pm" -> "13:00"
+    resetRaw = resetRaw.replace(/(\d{1,2})(am|pm)/gi, (_, h, ampm) => {
+      let hour = parseInt(h, 10);
+      if (ampm.toLowerCase() === 'pm' && hour !== 12) hour += 12;
+      if (ampm.toLowerCase() === 'am' && hour === 12) hour = 0;
+      return String(hour).padStart(2, '0') + ':00';
+    });
+
     const entry = {
       percentUsed: parseInt(pctMatch[1], 10),
-      resetInfo: resetMatch ? resetMatch[1].trim() : '',
+      resetInfo: resetRaw,
     };
 
     const lower = seg.toLowerCase();
