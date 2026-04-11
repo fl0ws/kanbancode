@@ -26,6 +26,7 @@ export default function SortableCard({ task, color }) {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.4 : isMultiDragPeer ? 0.35 : 1,
+    outline: 'none',
   };
 
   return (
