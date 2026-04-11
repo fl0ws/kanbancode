@@ -18,11 +18,46 @@ export default function UsageBars({ collapsed }) {
     }
   }, []);
 
-  // Fetch on mount + every 5 minutes
+  // Fetch on mount + every 5 minutes, paused when tab not visible
   useEffect(() => {
-    fetchUsage();
-    const interval = setInterval(fetchUsage, 5 * 60 * 1000);
-    return () => clearInterval(interval);
+    const INTERVAL = 5 * 60 * 1000;
+    let timer = null;
+    let lastFetch = 0;
+
+    function doFetch() {
+      lastFetch = Date.now();
+      fetchUsage();
+    }
+
+    function startTimer() {
+      stopTimer();
+      timer = setInterval(doFetch, INTERVAL);
+    }
+
+    function stopTimer() {
+      if (timer) { clearInterval(timer); timer = null; }
+    }
+
+    function handleVisibility() {
+      if (document.hidden) {
+        stopTimer();
+      } else {
+        // Tab regained focus — fetch immediately if stale, then resume timer
+        if (Date.now() - lastFetch >= INTERVAL) {
+          doFetch();
+        }
+        startTimer();
+      }
+    }
+
+    doFetch();
+    startTimer();
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      stopTimer();
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
   }, [fetchUsage]);
 
   if (!usage) return null;
