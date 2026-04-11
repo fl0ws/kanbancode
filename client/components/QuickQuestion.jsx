@@ -245,7 +245,7 @@ export default function QuickQuestion({ onClose }) {
                 ...styles.messageRow,
                 justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start',
               }}>
-                {msg.role === 'assistant' && <div style={styles.assistantAvatar}>🤖</div>}
+                {msg.role === 'assistant' && <div style={styles.assistantAvatar}><span className="material-symbols-outlined" style={{ fontSize: 16, fontVariationSettings: "'FILL' 1" }}>smart_toy</span></div>}
                 {msg.role === 'error' && <div style={styles.errorAvatar}>!</div>}
                 {msg.role === 'assistant' ? (
                   <div

@@ -89,7 +89,7 @@ export default function ActivityLog({ activities, liveOutput, isRunning, pending
             ))}
             {isRunning && !pendingQuestions && (
               <div style={styles.bubbleRow}>
-                <div style={styles.avatar}>🤖</div>
+                <div style={styles.avatar}><span className="material-symbols-outlined" style={{ fontSize: 18, fontVariationSettings: "'FILL' 1" }}>smart_toy</span></div>
                 <div style={styles.ponderBubble}>
                   <span style={styles.spinner} />
                   <span style={styles.ponderText}>{ponderStatus}</span>
@@ -98,7 +98,7 @@ export default function ActivityLog({ activities, liveOutput, isRunning, pending
             )}
             {pendingQuestions && (
               <div style={styles.bubbleRow}>
-                <div style={styles.avatar}>🤖</div>
+                <div style={styles.avatar}><span className="material-symbols-outlined" style={{ fontSize: 18, fontVariationSettings: "'FILL' 1" }}>smart_toy</span></div>
                 <div style={styles.questionBubble}>
                   <QuestionPanel taskId={taskId} questions={pendingQuestions} />
                 </div>
@@ -131,7 +131,7 @@ function ChatBubble({ entry }) {
       ...styles.bubbleRow,
       justifyContent: isUser ? 'flex-end' : 'flex-start',
     }}>
-      {!isUser && <div style={styles.avatar}>🤖</div>}
+      {!isUser && <div style={styles.avatar}><span className="material-symbols-outlined" style={{ fontSize: 18, fontVariationSettings: "'FILL' 1" }}>smart_toy</span></div>}
       <div style={{
         ...styles.bubble,
         ...(isUser ? styles.userBubble : styles.claudeBubble),
@@ -150,7 +150,7 @@ function ChatBubble({ entry }) {
           textAlign: isUser ? 'right' : 'left',
         }}>{formatTime(entry.timestamp)}</span>
       </div>
-      {isUser && <div style={{ ...styles.avatar, ...styles.userAvatar }}>🧑</div>}
+      {isUser && <div style={{ ...styles.avatar, ...styles.userAvatar }}><span className="material-symbols-outlined" style={{ fontSize: 18, fontVariationSettings: "'FILL' 1" }}>person</span></div>}
     </div>
   );
 }
