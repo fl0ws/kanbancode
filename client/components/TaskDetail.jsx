@@ -36,6 +36,7 @@ export default function TaskDetail({ taskId }) {
   const poolStatus = useStore(s => s.poolStatus);
   const [reply, setReply] = useState('');
   const [sending, setSending] = useState(false);
+  const [closing, setClosing] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editTitle, setEditTitle] = useState('');
   const [editDesc, setEditDesc] = useState('');
@@ -54,6 +55,20 @@ export default function TaskDetail({ taskId }) {
       if (data.output) setOutput(taskId, data.output);
     }).catch(() => {});
   }, [taskId]);
+
+  function handleClose() {
+    if (closing || sending) return;
+    setClosing(true);
+    setTimeout(() => setSelectedTask(null), 200);
+  }
+
+  useEffect(() => {
+    function onKey(e) {
+      if (e.key === 'Escape') { e.stopImmediatePropagation(); handleClose(); }
+    }
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+  }, [closing, sending]);
 
   if (!task) return null;
 
@@ -74,7 +89,7 @@ export default function TaskDetail({ taskId }) {
   async function handleMove(column) {
     try {
       await moveTask(taskId, column);
-      if (column === 'done') setSelectedTask(null);
+      if (column === 'done') handleClose();
     } catch (err) {
       alert(err.message);
     }
@@ -148,12 +163,12 @@ export default function TaskDetail({ taskId }) {
   }
 
   return (
-    <div style={{ ...styles.overlay, ...(sending ? styles.overlayFading : {}) }} onClick={() => !sending && setSelectedTask(null)}>
-    <div style={{ ...styles.panel, ...(sending ? styles.panelSending : {}) }} onClick={e => e.stopPropagation()}>
+    <div style={{ ...styles.overlay, ...(sending ? styles.overlayFading : {}), ...(closing ? styles.overlayClosing : {}) }} onClick={() => !sending && handleClose()}>
+    <div style={{ ...styles.panel, ...(sending ? styles.panelSending : {}), ...(closing ? styles.panelClosing : {}) }} onClick={e => e.stopPropagation()}>
       {/* Panel Header */}
       <div style={styles.panelHeader}>
         <div style={styles.headerLeft}>
-          <button style={styles.closeBtn} onClick={() => setSelectedTask(null)} title="Close">
+          <button style={styles.closeBtn} onClick={handleClose} title="Close">
             <span className="material-symbols-outlined" style={{ fontSize: 18 }}>close</span>
           </button>
           <span style={{ ...styles.statusTag, ...tagStyle }}>
@@ -295,6 +310,9 @@ const styles = {
   overlayFading: {
     background: 'rgba(0,0,0,0)',
   },
+  overlayClosing: {
+    animation: 'detail-overlay-out 0.2s ease forwards',
+  },
   panel: {
     width: 960,
     maxWidth: '92vw',
@@ -307,6 +325,9 @@ const styles = {
     overflow: 'hidden',
     transition: 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s ease',
     animation: 'detail-panel-in 0.25s cubic-bezier(0.2, 0.9, 0.3, 1)',
+  },
+  panelClosing: {
+    animation: 'detail-panel-out 0.2s cubic-bezier(0.4, 0, 1, 1) forwards',
   },
   panelSending: {
     transform: 'scale(0.08) translateX(-300%)',

@@ -66,10 +66,8 @@ export default function App() {
         setShowQuickQuestion(prev => !prev);
       }
       if (e.key === 'Escape') {
-        const s = useStore.getState();
-        if (s.selectedTaskId) {
-          s.setSelectedTask(null);
-        } else {
+        // TaskDetail handles its own Escape with animation
+        if (!useStore.getState().selectedTaskId) {
           clearCardSelection();
         }
       }
