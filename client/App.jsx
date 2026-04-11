@@ -116,7 +116,6 @@ export default function App() {
           <NavItem icon="analytics" label="Analytics" active={activePage === 'analytics'} filled onClick={() => setActivePage('analytics')} />
           <NavItem icon="inventory_2" label="Archive" onClick={() => setShowArchive(true)} />
           <NavItem icon="terminal" label="Commands" onClick={() => setShowCommands(true)} />
-          <NavItem icon="settings" label="Settings" onClick={() => setShowSettings(true)} />
         </nav>
 
         {/* Spacer */}
@@ -143,6 +142,9 @@ export default function App() {
           </div>
           <div style={styles.topBarRight}>
             <NotificationBell />
+            <button style={styles.iconBtn} onClick={() => setShowSettings(true)} title="Settings">
+              <span className="material-symbols-outlined" style={{ fontSize: 20 }}>settings</span>
+            </button>
             <button style={styles.iconBtn} onClick={toggleTheme} title={theme === 'light' ? 'Dark mode' : 'Light mode'}>
               <span className="material-symbols-outlined" style={{ fontSize: 20 }}>{theme === 'light' ? 'dark_mode' : 'light_mode'}</span>
             </button>
