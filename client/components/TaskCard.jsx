@@ -225,7 +225,7 @@ export default function TaskCard({ task, color, isDragging = false }) {
                   ...styles.menuItem,
                   ...(item.danger ? styles.menuItemDanger : {}),
                 }}
-                onClick={() => handleAction(item.action)}
+                onClick={(e) => { e.stopPropagation(); handleAction(item.action); }}
               >
                 <span className="material-symbols-outlined" style={{ fontSize: 16 }}>{item.icon}</span>
                 {item.label}
