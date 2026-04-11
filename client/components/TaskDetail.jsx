@@ -290,6 +290,7 @@ const styles = {
     justifyContent: 'center',
     zIndex: 100,
     transition: 'background 0.3s ease',
+    animation: 'detail-overlay-in 0.2s ease',
   },
   overlayFading: {
     background: 'rgba(0,0,0,0)',
@@ -305,6 +306,7 @@ const styles = {
     flexDirection: 'column',
     overflow: 'hidden',
     transition: 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s ease',
+    animation: 'detail-panel-in 0.25s cubic-bezier(0.2, 0.9, 0.3, 1)',
   },
   panelSending: {
     transform: 'scale(0.08) translateX(-300%)',
