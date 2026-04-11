@@ -34,6 +34,7 @@ export default function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [showManageProjects, setShowManageProjects] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
+  const [toast, setToast] = useState(null);
   const selectedTaskId = useStore(s => s.selectedTaskId);
   const poolStatus = useStore(s => s.poolStatus);
   const isDreaming = useStore(s => s.isDreaming);
@@ -106,6 +107,11 @@ export default function App() {
     }
     document.title = activeProject ? `CCK: ${activeProject.name}` : 'Claude Code Kanban';
   }, [activeProjectId, activeProject?.name]);
+
+  function showToast(text, type = 'success') {
+    setToast({ text, type, id: Date.now() });
+    setTimeout(() => setToast(null), 3000);
+  }
 
   const showConcurrencyPrompt = poolStatus.maxConcurrency === null;
 
@@ -214,13 +220,43 @@ export default function App() {
       {/* ═══ Overlays ═══ */}
       {selectedTaskId && <TaskDetail taskId={selectedTaskId} />}
       {showCreate && <CreateTaskModal onClose={() => setShowCreate(false)} draft={createDraft} setDraft={setCreateDraft} />}
-      {showSettings && <SettingsModal onClose={() => setShowSettings(false)} zoom={zoom} setZoom={setZoom} />}
+      {showSettings && <SettingsModal onClose={() => setShowSettings(false)} onSaved={() => { setShowSettings(false); showToast('Settings saved'); }} zoom={zoom} setZoom={setZoom} />}
       {showManageProjects && <ManageProjectsModal onClose={() => setShowManageProjects(false)} />}
       {showCommands && <ManageCommandsModal onClose={() => setShowCommands(false)} />}
       {showQuickQuestion && <QuickQuestion onClose={() => setShowQuickQuestion(false)} />}
       {showConcurrencyPrompt && <ConcurrencyPrompt />}
       {showShortcuts && <KeyboardShortcutsModal onClose={() => setShowShortcuts(false)} />}
       <MultiSelectBar />
+      {toast && <Toast text={toast.text} type={toast.type} />}
+    </div>
+  );
+}
+
+function Toast({ text, type }) {
+  return (
+    <div style={{
+      position: 'fixed',
+      bottom: 24,
+      left: '50%',
+      transform: 'translateX(-50%)',
+      padding: '10px 20px',
+      borderRadius: 'var(--radius-lg)',
+      background: type === 'error' ? 'var(--red)' : 'var(--green)',
+      color: '#fff',
+      fontSize: 13,
+      fontWeight: 600,
+      fontFamily: 'var(--font-headline)',
+      boxShadow: 'var(--shadow-lg)',
+      zIndex: 300,
+      display: 'flex',
+      alignItems: 'center',
+      gap: 8,
+      animation: 'toast-in 0.25s ease',
+    }}>
+      <span className="material-symbols-outlined" style={{ fontSize: 18, fontVariationSettings: "'FILL' 1" }}>
+        {type === 'error' ? 'error' : 'check_circle'}
+      </span>
+      {text}
     </div>
   );
 }

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { configurePool, saveSetting, fetchHealth } from '../api.js';
 import { useStore } from '../store.js';
 
-export default function SettingsModal({ onClose, zoom, setZoom }) {
+export default function SettingsModal({ onClose, onSaved, zoom, setZoom }) {
   const poolStatus = useStore(s => s.poolStatus);
   const setPoolStatus = useStore(s => s.setPoolStatus);
   const notificationSoundEnabled = useStore(s => s.notificationSoundEnabled);
@@ -42,10 +42,10 @@ Complete the task described above. When finished, provide a summary of what you 
       await saveSetting('claudeConfigDir', configDir.trim());
       await saveSetting('systemPrompt', systemPrompt.trim());
 
-      setMessage({ type: 'success', text: 'Settings saved' });
+      if (onSaved) onSaved();
+      else onClose();
     } catch (err) {
       setMessage({ type: 'error', text: err.message });
-    } finally {
       setSaving(false);
     }
   }
