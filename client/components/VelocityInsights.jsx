@@ -69,14 +69,13 @@ export default function VelocityInsights() {
           {/* Bar chart */}
           <div style={styles.chart}>
             {dailyCounts.map((count, i) => (
-              <div key={i} style={styles.barCol}>
+              <div key={i} style={styles.barCol} title={`${getDayLabel(days[i])}: ${count} task${count !== 1 ? 's' : ''} completed`}>
+                {count > 0 && <span style={styles.barCount}>{count}</span>}
                 <div style={styles.barTrack}>
                   <div style={{
                     ...styles.bar,
                     height: `${(count / maxCount) * 100}%`,
-                    background: count > 0
-                      ? (i === dailyCounts.length - 1 ? 'var(--green)' : 'var(--green)')
-                      : 'var(--bg-highest)',
+                    background: count > 0 ? 'var(--green)' : 'var(--bg-highest)',
                     opacity: count > 0 ? (0.3 + (count / maxCount) * 0.7) : 0.3,
                   }} />
                 </div>
@@ -218,6 +217,12 @@ const styles = {
     minHeight: 4,
     borderRadius: 4,
     transition: 'height 0.4s ease, opacity 0.3s',
+  },
+  barCount: {
+    fontSize: 11,
+    fontWeight: 700,
+    color: 'var(--green)',
+    fontFamily: 'var(--font-headline)',
   },
   barLabel: {
     fontSize: 9,
