@@ -47,7 +47,7 @@ export default function UsageBars({ collapsed }) {
 
   return (
     <div style={styles.container}>
-      <div style={styles.header}>
+      <div style={styles.header} title="Auto-updates every 5 minutes">
         <span className="material-symbols-outlined" style={{ fontSize: 14, color: 'var(--text-muted)' }}>speed</span>
         <span style={styles.title}>Usage</span>
         {loading && <span style={styles.loadingDot} />}
