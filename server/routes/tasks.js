@@ -1,5 +1,9 @@
 import { Router } from 'express';
 import { randomUUID } from 'crypto';
+import { spawn } from 'child_process';
+import { tmpdir, homedir } from 'os';
+import { join } from 'path';
+import { writeFileSync, unlinkSync } from 'fs';
 import * as db from '../db.js';
 import { validateTransition, COLUMNS } from '../state-machine.js';
 import { broadcast } from '../ws.js';
@@ -219,6 +223,123 @@ router.post('/api/settings', (req, res) => {
   broadcast('settings:updated', { key, value });
   logger.info('Setting updated', { key, value });
   res.json({ ok: true });
+});
+
+// --- Claude Usage ---
+
+// Cache usage data for 2 minutes to avoid excessive probe calls
+let usageCache = null;
+let usageCacheTime = 0;
+const USAGE_CACHE_TTL = 2 * 60 * 1000;
+
+router.get('/api/usage', async (req, res) => {
+  const now = Date.now();
+  if (usageCache && (now - usageCacheTime) < USAGE_CACHE_TTL) {
+    return res.json(usageCache);
+  }
+
+  const isWindows = process.platform === 'win32';
+
+  try {
+    // Spawn a minimal claude call to capture rate_limit_event
+    const promptFile = join(tmpdir(), `kanban-usage-probe-${Date.now()}.txt`);
+    writeFileSync(promptFile, 'say ok', 'utf-8');
+
+    const command = isWindows
+      ? `type "${promptFile}" | claude -p --verbose --output-format stream-json`
+      : `cat "${promptFile.replace(/\\/g, '/')}" | claude -p --verbose --output-format stream-json`;
+
+    // Get the configDir setting for CLAUDE_CONFIG_DIR
+    const configDir = db.getSetting('claudeConfigDir');
+    const env = { ...process.env };
+    if (configDir) {
+      const resolved = configDir.replace(/^~/, homedir());
+      env.CLAUDE_CONFIG_DIR = resolved;
+    }
+
+    const proc = spawn(command, [], {
+      stdio: ['ignore', 'pipe', 'pipe'],
+      shell: true,
+      windowsHide: isWindows,
+      env,
+    });
+
+    let output = '';
+    let rateLimitInfo = null;
+
+    proc.stdout.on('data', (chunk) => {
+      output += chunk.toString();
+      // Parse each line for rate_limit_event
+      const lines = output.split('\n');
+      output = lines.pop(); // keep incomplete last line
+      for (const line of lines) {
+        try {
+          const json = JSON.parse(line.trim());
+          if (json.type === 'rate_limit_event' && json.rate_limit_info) {
+            rateLimitInfo = json.rate_limit_info;
+          }
+        } catch {}
+      }
+    });
+
+    const timeout = setTimeout(() => { try { proc.kill(); } catch {} }, 30000);
+
+    proc.on('close', () => {
+      clearTimeout(timeout);
+      try { unlinkSync(promptFile); } catch {}
+
+      // Parse any remaining output
+      if (output.trim()) {
+        try {
+          const json = JSON.parse(output.trim());
+          if (json.type === 'rate_limit_event' && json.rate_limit_info) {
+            rateLimitInfo = json.rate_limit_info;
+          }
+        } catch {}
+      }
+
+      if (rateLimitInfo) {
+        const resetsAt = rateLimitInfo.resetsAt || 0;
+        const resetMs = resetsAt * 1000;
+        const totalWindow = rateLimitInfo.rateLimitType === 'five_hour' ? 5 * 60 * 60 * 1000 : 60 * 60 * 1000;
+        const windowStart = resetMs - totalWindow;
+        const elapsed = now - windowStart;
+        // We don't get exact percentage from the API, but we can derive a rough session indicator
+        // from the rate limit type and reset time
+        const percentUsed = totalWindow > 0 ? Math.max(0, Math.min(100, Math.round((elapsed / totalWindow) * 100))) : 0;
+
+        const result = {
+          session: {
+            resetsAt: rateLimitInfo.resetsAt,
+            rateLimitType: rateLimitInfo.rateLimitType,
+            status: rateLimitInfo.status,
+            percentUsed,
+            isUsingOverage: rateLimitInfo.isUsingOverage || false,
+            overageStatus: rateLimitInfo.overageStatus,
+            overageResetsAt: rateLimitInfo.overageResetsAt,
+          },
+          fetchedAt: now,
+        };
+
+        usageCache = result;
+        usageCacheTime = now;
+        res.json(result);
+      } else {
+        res.json({ session: null, error: 'Could not retrieve usage data' });
+      }
+    });
+
+    proc.on('error', (err) => {
+      clearTimeout(timeout);
+      try { unlinkSync(promptFile); } catch {}
+      logger.error('Usage probe failed', { error: err.message });
+      res.status(500).json({ error: err.message });
+    });
+
+  } catch (err) {
+    logger.error('Usage probe error', { error: err.message });
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // --- Analytics ---

@@ -15,6 +15,7 @@ import ManageCommandsModal from './components/ManageCommandsModal.jsx';
 import NotificationBell from './components/NotificationBell.jsx';
 import VelocityInsights from './components/VelocityInsights.jsx';
 import KeyboardShortcutsModal from './components/KeyboardShortcutsModal.jsx';
+import UsageBars from './components/UsageBars.jsx';
 
 function useZoom() {
   const [zoom, setZoom] = useState(() => Number(localStorage.getItem('kanban_zoom')) || 100);
@@ -167,6 +168,9 @@ export default function App() {
 
         {/* Spacer */}
         <div style={{ flex: 1 }} />
+
+        {/* Usage Bars */}
+        <UsageBars collapsed={sidebarCollapsed} />
 
         {/* Pool Status Widget */}
         <PoolWidget status={poolStatus} collapsed={sidebarCollapsed} />
