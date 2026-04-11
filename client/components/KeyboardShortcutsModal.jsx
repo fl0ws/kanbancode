@@ -14,6 +14,7 @@ const SHORTCUT_GROUPS = [
       { keys: ['N'], desc: 'Create new task' },
       { keys: ['Ctrl', 'Space'], desc: 'Quick question' },
       { keys: ['Ctrl', 'Click'], desc: 'Multi-select cards' },
+      { keys: ['Delete'], desc: 'Delete selected cards' },
     ],
   },
   {

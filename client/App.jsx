@@ -82,6 +82,20 @@ export default function App() {
           e.preventDefault();
           setShowCreate(true);
         }
+        if (e.key === 'Delete' || e.key === 'Backspace') {
+          const s = useStore.getState();
+          const ids = s.selectedCardIds.size > 0 ? [...s.selectedCardIds] : [];
+          if (ids.length > 0) {
+            e.preventDefault();
+            if (confirm(`Permanently delete ${ids.length} task${ids.length > 1 ? 's' : ''}?`)) {
+              import('./api.js').then(({ deleteTask }) => {
+                Promise.all(ids.map(id => deleteTask(id).catch(() => {}))).then(() => {
+                  s.clearCardSelection();
+                });
+              });
+            }
+          }
+        }
       }
     }
     window.addEventListener('keydown', handleKeyDown);
