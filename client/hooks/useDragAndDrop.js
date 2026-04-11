@@ -15,6 +15,15 @@ export function useDragAndDrop() {
     return null;
   }, []);
 
+  function getSelectedIds(activeId) {
+    const { selectedCardIds } = store.getState();
+    // If the dragged card is part of the multi-selection, move all selected
+    if (selectedCardIds.size > 0 && selectedCardIds.has(activeId)) {
+      return [...selectedCardIds];
+    }
+    return [activeId];
+  }
+
   function onDragStart(event) {
     setActiveId(event.active.id);
     dragOrigin.current = findColumn(event.active.id);
@@ -41,6 +50,7 @@ export function useDragAndDrop() {
     const overIndex = over.id === overCol ? targetIds.length : targetIds.indexOf(over.id);
     const insertAt = overIndex === -1 ? targetIds.length : overIndex;
 
+    // Only optimistic-move the primary dragged card for visual feedback
     state.optimisticMove(active.id, activeCol, overCol, insertAt);
   }
 
@@ -51,9 +61,10 @@ export function useDragAndDrop() {
     dragOrigin.current = null;
 
     if (!over) {
-      // Dropped outside — rollback if column changed
+      // Dropped outside — rollback
       if (originCol) {
-        fetchTasks().then(tasks => store.getState().setTasks(tasks));
+        const projectId = store.getState().activeProjectId;
+        fetchTasks(projectId).then(tasks => store.getState().setTasks(tasks));
       }
       return;
     }
@@ -68,23 +79,42 @@ export function useDragAndDrop() {
       : colIds.indexOf(over.id);
     const activeIndex = colIds.indexOf(active.id);
 
-    // Within-column reorder
-    if (originCol === currentCol && activeIndex !== -1 && overIndex !== -1 && activeIndex !== overIndex) {
+    const idsToMove = getSelectedIds(active.id);
+    const isMulti = idsToMove.length > 1;
+
+    // Cross-column move
+    if (originCol && originCol !== currentCol) {
+      const projectId = state.activeProjectId;
+
+      // Move all selected cards (or just the one)
+      Promise.all(
+        idsToMove.map(id => moveTask(id, currentCol).catch(() => {}))
+      ).then(() => {
+        // Re-fetch to get clean state after all moves
+        fetchTasks(projectId).then(tasks => store.getState().setTasks(tasks));
+      });
+
+      // Clear multi-selection after drop
+      store.getState().clearCardSelection();
+      return;
+    }
+
+    // Within-column reorder (single card only, not multi)
+    if (originCol === currentCol && activeIndex !== -1 && overIndex !== -1 && activeIndex !== overIndex && !isMulti) {
       const newIds = [...colIds];
       newIds.splice(activeIndex, 1);
       newIds.splice(overIndex, 0, active.id);
       state.reorderColumn(currentCol, newIds);
 
       reorderTasks(currentCol, newIds).catch(() => {
-        fetchTasks().then(tasks => store.getState().setTasks(tasks));
+        const projectId = state.activeProjectId;
+        fetchTasks(projectId).then(tasks => store.getState().setTasks(tasks));
       });
     }
 
-    // Cross-column move — compare against where the drag started
-    if (originCol && originCol !== currentCol) {
-      moveTask(active.id, currentCol).catch(() => {
-        fetchTasks().then(tasks => store.getState().setTasks(tasks));
-      });
+    // Clear multi-selection after any drop
+    if (isMulti) {
+      store.getState().clearCardSelection();
     }
   }
 
