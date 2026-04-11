@@ -535,8 +535,8 @@ const styles = {
     color: 'var(--text-primary)',
   },
   userBubble: {
-    background: 'linear-gradient(135deg, var(--green), var(--green-dark))',
-    color: 'var(--text-on-accent)',
+    background: 'linear-gradient(135deg, #466369, #3a575d)',
+    color: '#fff',
     borderBottomRightRadius: 4,
   },
   assistantBubble: {
