@@ -30,17 +30,21 @@ export default function UsageBars({ collapsed }) {
   if (!session && !weekly) return null;
 
   if (collapsed) {
-    const pct = session?.percentUsed ?? weekly?.percentUsed ?? 0;
-    const color = barColor(pct);
     return (
       <div
         style={styles.collapsedContainer}
-        title={`Session: ${session?.percentUsed ?? '?'}% · Weekly: ${weekly?.percentUsed ?? '?'}%`}
+        title={`Session: ${session?.percentUsed ?? '?'}% · Weekly: ${weekly?.percentUsed ?? '?'}%\nAuto-updates every 5 minutes`}
       >
-        <span className="material-symbols-outlined" style={{
-          fontSize: 16,
-          color,
-        }}>speed</span>
+        {session && (
+          <span style={{ ...styles.collapsedPct, color: barColor(session.percentUsed) }}>
+            {session.percentUsed}
+          </span>
+        )}
+        {weekly && (
+          <span style={{ ...styles.collapsedPct, color: barColor(weekly.percentUsed) }}>
+            {weekly.percentUsed}
+          </span>
+        )}
       </div>
     );
   }
@@ -164,8 +168,16 @@ const styles = {
   },
   collapsedContainer: {
     display: 'flex',
-    justifyContent: 'center',
-    padding: '6px 0',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: 2,
+    padding: '8px 0',
     marginBottom: 4,
+  },
+  collapsedPct: {
+    fontSize: 10,
+    fontWeight: 700,
+    fontFamily: 'var(--font-headline)',
+    lineHeight: 1,
   },
 };
