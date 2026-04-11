@@ -6,7 +6,7 @@ import { fetchTasks, fetchPoolStatus, fetchProjects, archiveTask } from './api.j
 import Board from './components/Board.jsx';
 import TaskDetail from './components/TaskDetail.jsx';
 import CreateTaskModal from './components/CreateTaskModal.jsx';
-import ArchiveModal from './components/ArchiveModal.jsx';
+import ArchivePage from './components/ArchivePage.jsx';
 import ConcurrencyPrompt from './components/ConcurrencyPrompt.jsx';
 import SettingsModal from './components/SettingsModal.jsx';
 import ManageProjectsModal from './components/ManageProjectsModal.jsx';
@@ -28,7 +28,6 @@ export default function App() {
   const [activePage, setActivePage] = useState('board');
   const [showCreate, setShowCreate] = useState(false);
   const [createDraft, setCreateDraft] = useState({ title: '', description: '' });
-  const [showArchive, setShowArchive] = useState(false);
   const [showCommands, setShowCommands] = useState(false);
   const [showQuickQuestion, setShowQuickQuestion] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -114,7 +113,7 @@ export default function App() {
         <nav style={styles.nav}>
           <NavItem icon="dashboard" label="Board" active={activePage === 'board'} filled onClick={() => setActivePage('board')} />
           <NavItem icon="analytics" label="Analytics" active={activePage === 'analytics'} filled onClick={() => setActivePage('analytics')} />
-          <NavItem icon="inventory_2" label="Archive" onClick={() => setShowArchive(true)} />
+          <NavItem icon="inventory_2" label="Archive" active={activePage === 'archive'} filled onClick={() => setActivePage('archive')} />
           <NavItem icon="terminal" label="Commands" onClick={() => setShowCommands(true)} />
         </nav>
 
@@ -174,12 +173,23 @@ export default function App() {
             </div>
           </>
         )}
+
+        {activePage === 'archive' && (
+          <>
+            <div style={styles.boardHeader}>
+              <h1 style={styles.boardTitle}>Archive</h1>
+              <p style={styles.boardSubtitle}>Archived tasks from {activeProject?.name || 'all projects'}</p>
+            </div>
+            <div style={styles.boardArea}>
+              <ArchivePage />
+            </div>
+          </>
+        )}
       </main>
 
       {/* ═══ Overlays ═══ */}
       {selectedTaskId && <TaskDetail taskId={selectedTaskId} />}
       {showCreate && <CreateTaskModal onClose={() => setShowCreate(false)} draft={createDraft} setDraft={setCreateDraft} />}
-      {showArchive && <ArchiveModal onClose={() => setShowArchive(false)} />}
       {showSettings && <SettingsModal onClose={() => setShowSettings(false)} zoom={zoom} setZoom={setZoom} />}
       {showManageProjects && <ManageProjectsModal onClose={() => setShowManageProjects(false)} />}
       {showCommands && <ManageCommandsModal onClose={() => setShowCommands(false)} />}
