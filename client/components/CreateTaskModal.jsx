@@ -286,10 +286,10 @@ const styles = {
     fontWeight: 600,
   },
   btnClaude: {
-    background: 'linear-gradient(135deg, var(--purple), var(--purple-dark, var(--purple)))',
+    background: 'linear-gradient(135deg, #7c5cbf, #6a4daa)',
     border: 'none',
     borderRadius: 'var(--radius-lg)',
-    color: 'var(--text-on-accent)',
+    color: '#fff',
     fontFamily: 'var(--font-headline)',
     fontWeight: 600,
   },
