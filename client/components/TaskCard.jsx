@@ -36,17 +36,28 @@ export default function TaskCard({ task, color, isDragging = false }) {
     }
   }
 
+  function clampMenu(x, y) {
+    const menuW = 190, menuH = 260;
+    const vw = window.innerWidth, vh = window.innerHeight;
+    return {
+      x: Math.min(x, vw - menuW - 8),
+      y: Math.min(y, vh - menuH - 8),
+    };
+  }
+
   function handleContextMenu(e) {
     e.preventDefault();
     e.stopPropagation();
-    setMenuPos({ x: e.clientX, y: e.clientY });
+    setMenuPos(clampMenu(e.clientX, e.clientY));
     setMenuOpen(true);
   }
 
   function handleDotsClick(e) {
     e.stopPropagation();
     const rect = e.currentTarget.getBoundingClientRect();
-    setMenuPos({ x: rect.right, y: rect.bottom + 4 });
+    // Prefer opening to the left of the button so it doesn't overflow on right-side columns
+    const x = rect.left - 180;
+    setMenuPos(clampMenu(Math.max(8, x), rect.bottom + 4));
     setMenuOpen(o => !o);
   }
 
