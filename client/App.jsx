@@ -57,7 +57,12 @@ export default function App() {
         setShowQuickQuestion(prev => !prev);
       }
       if (e.key === 'Escape') {
-        clearCardSelection();
+        const s = useStore.getState();
+        if (s.selectedTaskId) {
+          s.setSelectedTask(null);
+        } else {
+          clearCardSelection();
+        }
       }
     }
     window.addEventListener('keydown', handleKeyDown);
