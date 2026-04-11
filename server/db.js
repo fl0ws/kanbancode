@@ -408,16 +408,16 @@ export function getAnalytics(projectId) {
     params
   );
 
-  // Tasks completed per day (last 14 days) — based on activity_log "moved to done" or tasks currently in done
-  // We use activity_log system messages about moving to done, falling back to updated_at for done tasks
+  // Tasks completed per day (last 7 days) — based on activity_log "moved to done"
+  // Actual message format: "Moved from <col> to done"
   const dailyCompleted = all(
     `SELECT DATE(a.timestamp) as day, COUNT(DISTINCT a.task_id) as count
      FROM activity_log a
      JOIN tasks t ON a.task_id = t.id
      WHERE a.author = 'system'
-       AND (a.message LIKE '%→ Done%' OR a.message LIKE '%→ done%' OR a.message LIKE '%Moved to done%')
+       AND (a.message LIKE '%to done%' OR a.message LIKE '%to Done%' OR a.message LIKE '%→ done%' OR a.message LIKE '%→ Done%')
        ${pf}
-       AND a.timestamp >= datetime('now', '-14 days')
+       AND a.timestamp >= datetime('now', '-7 days')
      GROUP BY DATE(a.timestamp)
      ORDER BY day ASC`,
     params
@@ -430,7 +430,7 @@ export function getAnalytics(projectId) {
        FROM tasks t
        WHERE t."column" = 'done' AND t.archived = 0
        ${pf}
-       AND t.updated_at >= datetime('now', '-14 days')
+       AND t.updated_at >= datetime('now', '-7 days')
        GROUP BY DATE(t.updated_at)
        ORDER BY day ASC`,
       params
