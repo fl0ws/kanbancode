@@ -61,46 +61,66 @@ export default function TaskCard({ task, color, isDragging = false }) {
     setMenuOpen(o => !o);
   }
 
+  const isMulti = selectedCardIds.size > 1 && selectedCardIds.has(task.id);
+  const targetIds = isMulti ? [...selectedCardIds] : [task.id];
+  const count = targetIds.length;
+
   async function handleAction(action) {
     setMenuOpen(false);
     try {
       switch (action) {
         case 'open': setSelectedTask(task.id); break;
-        case 'to_claude': await moveTask(task.id, 'claude'); break;
-        case 'to_done': await moveTask(task.id, 'done'); break;
-        case 'to_your_turn': await moveTask(task.id, 'your_turn'); break;
-        case 'to_not_started': await moveTask(task.id, 'not_started'); break;
-        case 'stop': await stopTask(task.id); break;
-        case 'archive': await archiveTask(task.id); break;
+        case 'to_claude':
+          for (const id of targetIds) await moveTask(id, 'claude');
+          break;
+        case 'to_done':
+          for (const id of targetIds) await moveTask(id, 'done');
+          break;
+        case 'to_your_turn':
+          for (const id of targetIds) await moveTask(id, 'your_turn');
+          break;
+        case 'to_not_started':
+          for (const id of targetIds) await moveTask(id, 'not_started');
+          break;
+        case 'stop':
+          for (const id of targetIds) await stopTask(id);
+          break;
+        case 'archive':
+          for (const id of targetIds) await archiveTask(id);
+          break;
         case 'delete':
-          if (confirm('Permanently delete this task?')) await deleteTask(task.id);
+          if (!confirm(`Permanently delete ${count} task${count > 1 ? 's' : ''}?`)) return;
+          for (const id of targetIds) await deleteTask(id);
           break;
       }
     } catch (err) {
       alert(err.message);
     }
+    if (isMulti) useStore.getState().clearCardSelection();
   }
 
   // Build menu items based on column
-  const menuItems = [
-    { action: 'open', icon: 'open_in_new', label: 'Open' },
-  ];
+  const menuItems = [];
+
+  if (!isMulti) {
+    menuItems.push({ action: 'open', icon: 'open_in_new', label: 'Open' });
+  }
 
   if (task.column === 'not_started') {
-    menuItems.push({ action: 'to_claude', icon: 'smart_toy', label: 'Send to Claude' });
-    menuItems.push({ action: 'to_done', icon: 'check_circle', label: 'Move to Done' });
+    menuItems.push({ action: 'to_claude', icon: 'smart_toy', label: isMulti ? `Send ${count} to Claude` : 'Send to Claude' });
+    menuItems.push({ action: 'to_done', icon: 'check_circle', label: isMulti ? `Move ${count} to Done` : 'Move to Done' });
   } else if (task.column === 'claude') {
-    menuItems.push({ action: 'stop', icon: 'stop_circle', label: 'Stop', danger: true });
+    menuItems.push({ action: 'stop', icon: 'stop_circle', label: isMulti ? `Stop ${count}` : 'Stop', danger: true });
   } else if (task.column === 'your_turn') {
-    menuItems.push({ action: 'to_claude', icon: 'smart_toy', label: 'Send to Claude' });
-    menuItems.push({ action: 'to_done', icon: 'check_circle', label: 'Move to Done' });
+    menuItems.push({ action: 'to_claude', icon: 'smart_toy', label: isMulti ? `Send ${count} to Claude` : 'Send to Claude' });
+    menuItems.push({ action: 'to_done', icon: 'check_circle', label: isMulti ? `Move ${count} to Done` : 'Move to Done' });
   } else if (task.column === 'done') {
-    menuItems.push({ action: 'to_not_started', icon: 'replay', label: 'Reopen' });
+    menuItems.push({ action: 'to_not_started', icon: 'replay', label: isMulti ? `Reopen ${count}` : 'Reopen' });
   }
 
   menuItems.push({ divider: true });
-  menuItems.push({ action: 'archive', icon: 'inventory_2', label: 'Archive' });
-  menuItems.push({ action: 'delete', icon: 'delete', label: 'Delete', danger: true });
+  menuItems.push({ action: 'archive', icon: 'inventory_2', label: isMulti ? `Archive ${count}` : 'Archive' });
+  menuItems.push({ action: 'delete', icon: 'delete', label: isMulti ? `Delete ${count}` : 'Delete', danger: true });
 
   return (
     <div
