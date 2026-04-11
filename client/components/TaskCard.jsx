@@ -36,9 +36,15 @@ export default function TaskCard({ task, color, isDragging = false }) {
     }
   }
 
+  function getZoom() {
+    const z = parseFloat(document.getElementById('root')?.style.zoom) || 1;
+    return z;
+  }
+
   function clampMenu(x, y) {
+    const z = getZoom();
     const menuW = 190, menuH = 260;
-    const vw = window.innerWidth, vh = window.innerHeight;
+    const vw = window.innerWidth / z, vh = window.innerHeight / z;
     return {
       x: Math.min(x, vw - menuW - 8),
       y: Math.min(y, vh - menuH - 8),
@@ -48,16 +54,17 @@ export default function TaskCard({ task, color, isDragging = false }) {
   function handleContextMenu(e) {
     e.preventDefault();
     e.stopPropagation();
-    setMenuPos(clampMenu(e.clientX, e.clientY));
+    const z = getZoom();
+    setMenuPos(clampMenu(e.clientX / z, e.clientY / z));
     setMenuOpen(true);
   }
 
   function handleDotsClick(e) {
     e.stopPropagation();
+    const z = getZoom();
     const rect = e.currentTarget.getBoundingClientRect();
-    // Prefer opening to the left of the button so it doesn't overflow on right-side columns
-    const x = rect.left - 180;
-    setMenuPos(clampMenu(Math.max(8, x), rect.bottom + 4));
+    const x = rect.left / z - 180;
+    setMenuPos(clampMenu(Math.max(8, x), rect.bottom / z + 4));
     setMenuOpen(o => !o);
   }
 
