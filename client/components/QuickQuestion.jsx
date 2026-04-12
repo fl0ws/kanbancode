@@ -2,10 +2,21 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useStore } from '../store.js';
 import { askQuestion, replyQuestion, stopQuestion, resetQuestion, listQuestions, loadQuestion, getQuestion, deleteQuestion, qqStatus } from '../api.js';
 import { marked } from 'marked';
+import hljs from 'highlight.js/lib/core';
 import { useAutoResize } from '../hooks/useAutoResize.js';
 import { useModalClose } from '../hooks/useModalClose.js';
 
-marked.setOptions({ breaks: false, gfm: true });
+marked.setOptions({
+  breaks: false,
+  gfm: true,
+  highlight: function(code, lang) {
+    if (lang && hljs.getLanguage(lang)) {
+      try { return hljs.highlight(code, { language: lang }).value; } catch {}
+    }
+    try { return hljs.highlightAuto(code).value; } catch {}
+    return code;
+  },
+});
 
 const IDLE_PHRASES = [
   'Pondering...',

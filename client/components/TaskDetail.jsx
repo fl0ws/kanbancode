@@ -2,9 +2,47 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useStore } from '../store.js';
 import { fetchOutput, moveTask, stopTask, updateTask, logActivity, archiveTask, deleteTask, fetchCommands } from '../api.js';
 import { useAutoResize } from '../hooks/useAutoResize.js';
+import { marked } from 'marked';
+import hljs from 'highlight.js/lib/core';
+import javascript from 'highlight.js/lib/languages/javascript';
+import typescript from 'highlight.js/lib/languages/typescript';
+import python from 'highlight.js/lib/languages/python';
+import bash from 'highlight.js/lib/languages/bash';
+import json from 'highlight.js/lib/languages/json';
+import css from 'highlight.js/lib/languages/css';
+import xml from 'highlight.js/lib/languages/xml';
+import sql from 'highlight.js/lib/languages/sql';
+import markdown from 'highlight.js/lib/languages/markdown';
 import ActivityLog from './ActivityLog.jsx';
 import NeedsInputBanner from './NeedsInputBanner.jsx';
 import SlashCommandOverlay from './SlashCommandOverlay.jsx';
+
+hljs.registerLanguage('javascript', javascript);
+hljs.registerLanguage('js', javascript);
+hljs.registerLanguage('typescript', typescript);
+hljs.registerLanguage('ts', typescript);
+hljs.registerLanguage('python', python);
+hljs.registerLanguage('bash', bash);
+hljs.registerLanguage('sh', bash);
+hljs.registerLanguage('json', json);
+hljs.registerLanguage('css', css);
+hljs.registerLanguage('html', xml);
+hljs.registerLanguage('xml', xml);
+hljs.registerLanguage('sql', sql);
+hljs.registerLanguage('markdown', markdown);
+hljs.registerLanguage('md', markdown);
+
+marked.setOptions({
+  breaks: true,
+  gfm: true,
+  highlight: function(code, lang) {
+    if (lang && hljs.getLanguage(lang)) {
+      try { return hljs.highlight(code, { language: lang }).value; } catch {}
+    }
+    try { return hljs.highlightAuto(code).value; } catch {}
+    return code;
+  },
+});
 
 const COLUMN_LABELS = {
   not_started: 'Not Started',
@@ -202,7 +240,13 @@ export default function TaskDetail({ taskId }) {
             ) : (
               <div style={styles.taskInfo} onClick={startEdit}>
                 <h2 style={styles.taskTitle}>{task.title}</h2>
-                {task.description && <p style={styles.taskDesc}>{task.description}</p>}
+                {task.description && (
+                  <div
+                    className="qq-markdown"
+                    style={styles.taskDesc}
+                    dangerouslySetInnerHTML={{ __html: marked.parse(task.description) }}
+                  />
+                )}
               </div>
             )}
 
