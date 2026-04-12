@@ -200,7 +200,7 @@ const styles = {
   heading: {
     fontFamily: 'var(--font-headline)',
     fontWeight: 700,
-    fontSize: 15,
+    fontSize: 'var(--fs-md)',
     color: 'var(--text-primary)',
   },
   headerActions: {
@@ -214,7 +214,7 @@ const styles = {
     border: 'none',
     background: 'var(--bg-elevated)',
     color: 'var(--text-muted)',
-    fontSize: 12,
+    fontSize: 'var(--fs-small)',
     cursor: 'pointer',
   },
   closeBtn: {
@@ -233,7 +233,7 @@ const styles = {
   },
   label: {
     display: 'block',
-    fontSize: 12,
+    fontSize: 'var(--fs-small)',
     fontWeight: 500,
     color: 'var(--text-secondary)',
     marginBottom: 12,
@@ -247,7 +247,7 @@ const styles = {
     border: 'none',
     background: 'var(--bg-input)',
     color: 'var(--text-primary)',
-    fontSize: 13,
+    fontSize: 'var(--fs-body)',
     outline: 'none',
   },
   textarea: {
@@ -261,7 +261,7 @@ const styles = {
   },
   error: {
     color: 'var(--red)',
-    fontSize: 13,
+    fontSize: 'var(--fs-body)',
     marginBottom: 8,
   },
   actions: {
@@ -276,7 +276,7 @@ const styles = {
     border: 'none',
     background: 'var(--bg-elevated)',
     color: 'var(--text-secondary)',
-    fontSize: 13,
+    fontSize: 'var(--fs-body)',
     cursor: 'pointer',
   },
   btnAdd: {

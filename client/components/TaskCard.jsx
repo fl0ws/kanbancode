@@ -36,15 +36,9 @@ export default function TaskCard({ task, color, isDragging = false }) {
     }
   }
 
-  function getZoom() {
-    const z = parseFloat(document.getElementById('root')?.style.zoom) || 1;
-    return z;
-  }
-
   function clampMenu(x, y) {
-    const z = getZoom();
     const menuW = 190, menuH = 260;
-    const vw = window.innerWidth / z, vh = window.innerHeight / z;
+    const vw = window.innerWidth, vh = window.innerHeight;
     return {
       x: Math.min(x, vw - menuW - 8),
       y: Math.min(y, vh - menuH - 8),
@@ -54,17 +48,15 @@ export default function TaskCard({ task, color, isDragging = false }) {
   function handleContextMenu(e) {
     e.preventDefault();
     e.stopPropagation();
-    const z = getZoom();
-    setMenuPos(clampMenu(e.clientX / z, e.clientY / z));
+    setMenuPos(clampMenu(e.clientX, e.clientY));
     setMenuOpen(true);
   }
 
   function handleDotsClick(e) {
     e.stopPropagation();
-    const z = getZoom();
     const rect = e.currentTarget.getBoundingClientRect();
-    const x = rect.left / z - 180;
-    setMenuPos(clampMenu(Math.max(8, x), rect.bottom / z + 4));
+    const x = rect.left - 180;
+    setMenuPos(clampMenu(Math.max(8, x), rect.bottom + 4));
     setMenuOpen(o => !o);
   }
 
@@ -290,7 +282,7 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     gap: 5,
-    fontSize: 10,
+    fontSize: 'var(--fs-sm)',
     fontWeight: 700,
     padding: '2px 8px',
     borderRadius: 6,
@@ -307,7 +299,7 @@ const styles = {
     animation: 'gentle-pulse 2.5s ease-in-out infinite',
   },
   queuedTag: {
-    fontSize: 10,
+    fontSize: 'var(--fs-sm)',
     fontWeight: 700,
     padding: '2px 8px',
     borderRadius: 6,
@@ -320,7 +312,7 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     gap: 3,
-    fontSize: 10,
+    fontSize: 'var(--fs-sm)',
     fontWeight: 700,
     padding: '2px 8px',
     borderRadius: 6,
@@ -330,7 +322,7 @@ const styles = {
     letterSpacing: '0.05em',
   },
   doneTag: {
-    fontSize: 10,
+    fontSize: 'var(--fs-sm)',
     fontWeight: 700,
     padding: '2px 8px',
     borderRadius: 6,
@@ -341,7 +333,7 @@ const styles = {
   },
   title: {
     fontFamily: 'var(--font-headline)',
-    fontSize: 14,
+    fontSize: 'var(--fs-base)',
     fontWeight: 700,
     color: 'var(--text-primary)',
     lineHeight: 1.3,
@@ -356,7 +348,7 @@ const styles = {
     textDecorationColor: 'var(--text-muted)',
   },
   desc: {
-    fontSize: 13,
+    fontSize: 'var(--fs-body)',
     color: 'var(--text-secondary)',
     overflowWrap: 'break-word',
     wordBreak: 'break-word',
@@ -369,7 +361,7 @@ const styles = {
     gap: 4,
   },
   timeTag: {
-    fontSize: 11,
+    fontSize: 'var(--fs-caption)',
     color: 'var(--text-muted)',
   },
   dotsBtn: {
@@ -424,7 +416,7 @@ const styles = {
     background: 'none',
     borderRadius: 'var(--radius-sm)',
     color: 'var(--text-primary)',
-    fontSize: 12,
+    fontSize: 'var(--fs-small)',
     fontWeight: 500,
     cursor: 'pointer',
     textAlign: 'left',

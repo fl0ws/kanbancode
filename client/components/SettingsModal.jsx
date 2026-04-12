@@ -133,7 +133,7 @@ Complete the task described above. When finished, provide a summary of what you 
               <span style={styles.sliderLabel}>150%</span>
             </div>
             <span style={styles.hint}>
-              Scales the entire interface. Useful for high-DPI screens or accessibility.
+              Scales text and spacing. Layout structure stays fixed.
             </span>
           </label>
 
@@ -200,7 +200,7 @@ const styles = {
   },
   heading: {
     fontFamily: 'var(--font-headline)',
-    fontSize: 15,
+    fontSize: 'var(--fs-md)',
     fontWeight: 700,
     color: 'var(--text-primary)',
   },
@@ -220,7 +220,7 @@ const styles = {
   },
   label: {
     display: 'block',
-    fontSize: 12,
+    fontSize: 'var(--fs-small)',
     color: 'var(--text-secondary)',
     fontWeight: 500,
     marginBottom: 16,
@@ -234,20 +234,20 @@ const styles = {
     border: 'none',
     background: 'var(--bg-input)',
     color: 'var(--text-primary)',
-    fontSize: 13,
+    fontSize: 'var(--fs-body)',
     font: 'inherit',
     outline: 'none',
   },
   textarea: {
     resize: 'vertical',
     fontFamily: "'Cascadia Code', 'Fira Code', 'Consolas', monospace",
-    fontSize: 12,
+    fontSize: 'var(--fs-small)',
     lineHeight: 1.5,
   },
   hint: {
     display: 'block',
     marginTop: 4,
-    fontSize: 11,
+    fontSize: 'var(--fs-caption)',
     fontWeight: 700,
     textTransform: 'uppercase',
     letterSpacing: '0.05em',
@@ -261,7 +261,7 @@ const styles = {
     border: 'none',
     background: 'var(--bg-input)',
     color: 'var(--text-tertiary)',
-    fontSize: 11,
+    fontSize: 'var(--fs-caption)',
     cursor: 'pointer',
   },
   sliderRow: {
@@ -276,12 +276,12 @@ const styles = {
     accentColor: 'var(--blue)',
   },
   sliderLabel: {
-    fontSize: 11,
+    fontSize: 'var(--fs-caption)',
     color: 'var(--text-muted)',
     flexShrink: 0,
   },
   message: {
-    fontSize: 13,
+    fontSize: 'var(--fs-body)',
     marginBottom: 8,
   },
   actions: {
@@ -296,7 +296,7 @@ const styles = {
     border: 'none',
     background: 'var(--bg-input)',
     color: 'var(--text-secondary)',
-    fontSize: 13,
+    fontSize: 'var(--fs-body)',
     fontFamily: 'var(--font-headline)',
     fontWeight: 600,
     cursor: 'pointer',
@@ -325,13 +325,13 @@ const styles = {
     cursor: 'pointer',
   },
   toggleText: {
-    fontSize: 13,
+    fontSize: 'var(--fs-body)',
     fontWeight: 500,
     color: 'var(--text-primary)',
   },
   toggleHint: {
     display: 'block',
-    fontSize: 11,
+    fontSize: 'var(--fs-caption)',
     color: 'var(--text-muted)',
     marginLeft: 24,
     lineHeight: 1.4,

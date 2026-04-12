@@ -20,7 +20,9 @@ import UsageBars from './components/UsageBars.jsx';
 function useZoom() {
   const [zoom, setZoom] = useState(() => Number(localStorage.getItem('kanban_zoom')) || 100);
   useEffect(() => {
-    document.getElementById('root').style.zoom = (zoom / 100).toString();
+    // Scale root font-size instead of CSS zoom — rem-based sizes scale naturally,
+    // structural px dimensions (sidebar, icons) stay fixed
+    document.documentElement.style.fontSize = (16 * zoom / 100) + 'px';
     localStorage.setItem('kanban_zoom', String(zoom));
   }, [zoom]);
   return { zoom, setZoom };
@@ -287,7 +289,7 @@ function Toast({ text, type }) {
       borderRadius: 'var(--radius-lg)',
       background: type === 'error' ? 'var(--red)' : 'var(--green)',
       color: '#fff',
-      fontSize: 13,
+      fontSize: 'var(--fs-body)',
       fontWeight: 600,
       fontFamily: 'var(--font-headline)',
       boxShadow: 'var(--shadow-lg)',
@@ -411,8 +413,8 @@ function ProjectSelector({ projects, activeProject, onSelect, onManage }) {
 function DreamingIndicator({ collapsed }) {
   return (
     <div style={{ ...styles.dreamBadge, justifyContent: collapsed ? 'center' : 'flex-start' }} title="Consolidating project memory...">
-      <span style={{ fontSize: 14 }}>🌙</span>
-      {!collapsed && <span style={{ fontSize: 11, fontWeight: 600 }}>Dreaming</span>}
+      <span style={{ fontSize: 'var(--fs-base)' }}>🌙</span>
+      {!collapsed && <span style={{ fontSize: 'var(--fs-caption)', fontWeight: 600 }}>Dreaming</span>}
     </div>
   );
 }
@@ -457,7 +459,7 @@ function PoolWidget({ status, collapsed }) {
     return (
       <div style={{ ...styles.poolWidget, padding: '10px 6px', alignItems: 'center' }} title={`${running}/${max} running${queued > 0 ? `, ${queued} queued` : ''}`}>
         <div style={styles.poolDot} />
-        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>{running}/{max}</span>
+        <span style={{ fontSize: 'var(--fs-small)', fontWeight: 700, color: 'var(--text-primary)' }}>{running}/{max}</span>
         <div style={{ ...styles.poolTrack, marginTop: 4 }}>
           <div style={{ ...styles.poolBar, width: `${(running / max) * 100}%` }} />
         </div>
@@ -547,12 +549,12 @@ const styles = {
   },
   brandTitle: {
     fontFamily: 'var(--font-headline)',
-    fontSize: 15,
+    fontSize: 'var(--fs-md)',
     fontWeight: 700,
     color: 'var(--green)',
   },
   brandSub: {
-    fontSize: 10,
+    fontSize: 'var(--fs-sm)',
     fontWeight: 600,
     color: 'var(--text-muted)',
     textTransform: 'uppercase',
@@ -566,7 +568,7 @@ const styles = {
     background: 'linear-gradient(135deg, var(--green), var(--green-dark))',
     color: 'var(--text-on-accent)',
     fontFamily: 'var(--font-headline)',
-    fontSize: 13,
+    fontSize: 'var(--fs-body)',
     fontWeight: 600,
     cursor: 'pointer',
     display: 'flex',
@@ -601,7 +603,7 @@ const styles = {
     fontWeight: 600,
   },
   navLabel: {
-    fontSize: 13,
+    fontSize: 'var(--fs-body)',
     fontFamily: 'var(--font-body)',
   },
 
@@ -626,7 +628,7 @@ const styles = {
     animation: 'gentle-pulse 2.5s ease-in-out infinite',
   },
   poolLabel: {
-    fontSize: 10,
+    fontSize: 'var(--fs-sm)',
     fontWeight: 700,
     color: 'var(--text-primary)',
     textTransform: 'uppercase',
@@ -639,11 +641,11 @@ const styles = {
     marginBottom: 4,
   },
   poolRowLabel: {
-    fontSize: 12,
+    fontSize: 'var(--fs-small)',
     color: 'var(--text-secondary)',
   },
   poolRowValue: {
-    fontSize: 12,
+    fontSize: 'var(--fs-small)',
     fontWeight: 600,
     color: 'var(--text-primary)',
   },
@@ -667,7 +669,7 @@ const styles = {
     borderTop: '1px solid var(--border)',
   },
   poolDropdownHeader: {
-    fontSize: 10,
+    fontSize: 'var(--fs-sm)',
     fontWeight: 700,
     color: 'var(--text-muted)',
     textTransform: 'uppercase',
@@ -695,7 +697,7 @@ const styles = {
     minWidth: 0,
   },
   poolDropdownTitle: {
-    fontSize: 12,
+    fontSize: 'var(--fs-small)',
     fontWeight: 500,
     color: 'var(--text-primary)',
     overflow: 'hidden',
@@ -703,7 +705,7 @@ const styles = {
     whiteSpace: 'nowrap',
   },
   poolDropdownProject: {
-    fontSize: 10,
+    fontSize: 'var(--fs-sm)',
     color: 'var(--text-muted)',
   },
   dreamBadge: {
@@ -777,7 +779,7 @@ const styles = {
   },
   boardTitle: {
     fontFamily: 'var(--font-headline)',
-    fontSize: 32,
+    fontSize: 'var(--fs-display)',
     fontWeight: 800,
     color: 'var(--text-primary)',
     letterSpacing: '-0.02em',
@@ -785,7 +787,7 @@ const styles = {
     marginBottom: 4,
   },
   boardSubtitle: {
-    fontSize: 13,
+    fontSize: 'var(--fs-body)',
     color: 'var(--text-secondary)',
   },
   boardArea: {
@@ -802,7 +804,7 @@ const styles = {
     borderRadius: 'var(--radius-lg)',
     border: 'none',
     background: 'var(--bg-sidebar)',
-    fontSize: 13,
+    fontSize: 'var(--fs-body)',
     fontWeight: 500,
     color: 'var(--text-primary)',
     cursor: 'pointer',
@@ -830,7 +832,7 @@ const styles = {
     border: 'none',
     background: 'none',
     cursor: 'pointer',
-    fontSize: 13,
+    fontSize: 'var(--fs-body)',
     color: 'var(--text-secondary)',
     textAlign: 'left',
     gap: 1,
@@ -848,7 +850,7 @@ const styles = {
     width: '100%',
   },
   projectOptionDir: {
-    fontSize: 11,
+    fontSize: 'var(--fs-caption)',
     color: 'var(--text-muted)',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
@@ -866,7 +868,7 @@ const styles = {
     border: 'none',
     background: 'none',
     cursor: 'pointer',
-    fontSize: 13,
+    fontSize: 'var(--fs-body)',
     color: 'var(--green)',
     textAlign: 'left',
     fontWeight: 500,
@@ -889,7 +891,7 @@ const styles = {
     zIndex: 50,
   },
   multiBarText: {
-    fontSize: 13,
+    fontSize: 'var(--fs-body)',
     fontWeight: 500,
     color: 'var(--text-primary)',
   },
@@ -899,7 +901,7 @@ const styles = {
     border: 'none',
     background: 'var(--green-bg)',
     color: 'var(--green)',
-    fontSize: 13,
+    fontSize: 'var(--fs-body)',
     fontWeight: 500,
     cursor: 'pointer',
   },
@@ -913,7 +915,7 @@ const styles = {
     border: 'none',
     background: 'var(--bg-elevated)',
     color: 'var(--text-muted)',
-    fontSize: 13,
+    fontSize: 'var(--fs-body)',
     cursor: 'pointer',
   },
 };

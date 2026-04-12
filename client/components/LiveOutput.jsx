@@ -68,7 +68,7 @@ const styles = {
     flexShrink: 0,
   },
   label: {
-    fontSize: 10,
+    fontSize: 'var(--fs-sm)',
     fontWeight: 700,
     textTransform: 'uppercase',
     letterSpacing: '0.05em',
@@ -76,7 +76,7 @@ const styles = {
     flex: 1,
   },
   liveBadge: {
-    fontSize: 10,
+    fontSize: 'var(--fs-sm)',
     fontWeight: 700,
     color: 'var(--purple)',
     background: 'var(--purple-bg)',
@@ -86,7 +86,7 @@ const styles = {
   },
   output: {
     padding: 10,
-    fontSize: 12,
+    fontSize: 'var(--fs-small)',
     lineHeight: 1.6,
     color: 'var(--text-secondary)',
     maxHeight: 240,
@@ -99,7 +99,7 @@ const styles = {
   fillOutput: {
     flex: 1,
     padding: 10,
-    fontSize: 12,
+    fontSize: 'var(--fs-small)',
     lineHeight: 1.6,
     color: 'var(--text-secondary)',
     overflowY: 'auto',

@@ -168,7 +168,7 @@ const styles = {
   },
   heading: {
     fontFamily: 'var(--font-headline)',
-    fontSize: 15,
+    fontSize: 'var(--fs-md)',
     fontWeight: 700,
     color: 'var(--text-primary)',
   },
@@ -188,7 +188,7 @@ const styles = {
   },
   subheading: {
     fontFamily: 'var(--font-headline)',
-    fontSize: 14,
+    fontSize: 'var(--fs-base)',
     fontWeight: 600,
     color: 'var(--text-secondary)',
     marginBottom: 8,
@@ -220,7 +220,7 @@ const styles = {
     minWidth: 0,
   },
   itemName: {
-    fontSize: 14,
+    fontSize: 'var(--fs-base)',
     fontWeight: 500,
     color: 'var(--text-primary)',
     display: 'flex',
@@ -228,7 +228,7 @@ const styles = {
     gap: 8,
   },
   activeBadge: {
-    fontSize: 10,
+    fontSize: 'var(--fs-sm)',
     padding: '1px 6px',
     borderRadius: 'var(--radius-sm)',
     background: 'var(--blue-bg)',
@@ -236,7 +236,7 @@ const styles = {
     fontWeight: 600,
   },
   itemDir: {
-    fontSize: 12,
+    fontSize: 'var(--fs-small)',
     color: 'var(--text-muted)',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
@@ -253,7 +253,7 @@ const styles = {
     gap: 6,
   },
   fieldLabel: {
-    fontSize: 12,
+    fontSize: 'var(--fs-small)',
     fontWeight: 500,
     color: 'var(--text-secondary)',
     marginBottom: -4,
@@ -275,7 +275,7 @@ const styles = {
     border: 'none',
     background: 'var(--bg-input)',
     color: 'var(--text-primary)',
-    fontSize: 13,
+    fontSize: 'var(--fs-body)',
     outline: 'none',
   },
   btn: {
@@ -284,7 +284,7 @@ const styles = {
     border: 'none',
     background: 'var(--bg-elevated)',
     color: 'var(--text-secondary)',
-    fontSize: 13,
+    fontSize: 'var(--fs-body)',
     cursor: 'pointer',
   },
   btnPrimary: {
@@ -301,7 +301,7 @@ const styles = {
     border: 'none',
     background: 'var(--bg-elevated)',
     color: 'var(--text-secondary)',
-    fontSize: 12,
+    fontSize: 'var(--fs-small)',
     cursor: 'pointer',
   },
   deleteBtn: {
@@ -311,7 +311,7 @@ const styles = {
   },
   error: {
     color: 'var(--red)',
-    fontSize: 13,
+    fontSize: 'var(--fs-body)',
     marginTop: 8,
   },
   footer: {

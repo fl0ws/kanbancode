@@ -109,7 +109,7 @@ const styles = {
   heading: {
     fontFamily: 'var(--font-headline)',
     fontWeight: 700,
-    fontSize: 15,
+    fontSize: 'var(--fs-md)',
     color: 'var(--text-primary)',
   },
   closeBtn: {
@@ -138,7 +138,7 @@ const styles = {
     border: 'none',
     background: 'var(--bg-input)',
     color: 'var(--text-primary)',
-    fontSize: 13,
+    fontSize: 'var(--fs-body)',
   },
   list: {
     flex: 1,
@@ -154,12 +154,12 @@ const styles = {
     gap: 12,
   },
   title: {
-    fontSize: 13,
+    fontSize: 'var(--fs-body)',
     fontWeight: 500,
     color: 'var(--text-primary)',
   },
   desc: {
-    fontSize: 12,
+    fontSize: 'var(--fs-small)',
     color: 'var(--text-tertiary)',
     marginTop: 2,
   },
@@ -169,13 +169,13 @@ const styles = {
     border: 'none',
     background: 'var(--green-bg)',
     color: 'var(--green)',
-    fontSize: 12,
+    fontSize: 'var(--fs-small)',
     cursor: 'pointer',
     flexShrink: 0,
   },
   empty: {
     color: 'var(--text-muted)',
-    fontSize: 13,
+    fontSize: 'var(--fs-body)',
     textAlign: 'center',
     padding: 24,
   },
@@ -190,7 +190,7 @@ const styles = {
     border: 'none',
     background: 'var(--bg-elevated)',
     color: 'var(--text-secondary)',
-    fontSize: 13,
+    fontSize: 'var(--fs-body)',
     cursor: 'pointer',
   },
 };

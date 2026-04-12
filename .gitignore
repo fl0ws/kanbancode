@@ -5,3 +5,4 @@ client/dist/
 *.db-wal
 *.db-shm
 .claude/
+.playwright-mcp/

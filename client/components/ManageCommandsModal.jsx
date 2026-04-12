@@ -176,7 +176,7 @@ const styles = {
   },
   heading: {
     fontFamily: 'var(--font-headline)',
-    fontSize: 15,
+    fontSize: 'var(--fs-md)',
     fontWeight: 700,
     color: 'var(--text-primary)',
   },
@@ -196,7 +196,7 @@ const styles = {
   },
   subheading: {
     fontFamily: 'var(--font-headline)',
-    fontSize: 14,
+    fontSize: 'var(--fs-base)',
     fontWeight: 600,
     color: 'var(--text-secondary)',
     marginBottom: 10,
@@ -230,12 +230,12 @@ const styles = {
     gap: 8,
   },
   itemName: {
-    fontSize: 14,
+    fontSize: 'var(--fs-base)',
     fontWeight: 600,
     color: 'var(--blue)',
   },
   builtinBadge: {
-    fontSize: 10,
+    fontSize: 'var(--fs-sm)',
     padding: '1px 6px',
     borderRadius: 'var(--radius-sm)',
     background: 'var(--bg-elevated)',
@@ -244,11 +244,11 @@ const styles = {
     textTransform: 'uppercase',
   },
   itemDesc: {
-    fontSize: 12,
+    fontSize: 'var(--fs-small)',
     color: 'var(--text-secondary)',
   },
   itemTemplate: {
-    fontSize: 11,
+    fontSize: 'var(--fs-caption)',
     color: 'var(--text-muted)',
     fontStyle: 'italic',
     overflow: 'hidden',
@@ -277,7 +277,7 @@ const styles = {
   },
   fieldLabel: {
     display: 'block',
-    fontSize: 12,
+    fontSize: 'var(--fs-small)',
     fontWeight: 500,
     color: 'var(--text-secondary)',
     flex: 1,
@@ -297,7 +297,7 @@ const styles = {
     border: 'none',
     background: 'var(--bg-input)',
     color: 'var(--text-primary)',
-    fontSize: 13,
+    fontSize: 'var(--fs-body)',
     outline: 'none',
   },
   textarea: {
@@ -310,7 +310,7 @@ const styles = {
     border: 'none',
     background: 'var(--bg-elevated)',
     color: 'var(--text-secondary)',
-    fontSize: 13,
+    fontSize: 'var(--fs-body)',
     cursor: 'pointer',
   },
   btnPrimary: {
@@ -327,7 +327,7 @@ const styles = {
     border: 'none',
     background: 'var(--bg-elevated)',
     color: 'var(--text-secondary)',
-    fontSize: 12,
+    fontSize: 'var(--fs-small)',
     cursor: 'pointer',
   },
   deleteBtn: {
@@ -337,7 +337,7 @@ const styles = {
   },
   error: {
     color: 'var(--red)',
-    fontSize: 13,
+    fontSize: 'var(--fs-body)',
     marginTop: 8,
   },
 };

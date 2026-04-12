@@ -183,7 +183,7 @@ const styles = {
   },
   chartTitle: {
     fontFamily: 'var(--font-headline)',
-    fontSize: 18,
+    fontSize: 'var(--fs-xl)',
     fontWeight: 700,
     color: 'var(--text-primary)',
     marginBottom: 20,
@@ -219,13 +219,13 @@ const styles = {
     transition: 'height 0.4s ease, opacity 0.3s',
   },
   barCount: {
-    fontSize: 11,
+    fontSize: 'var(--fs-caption)',
     fontWeight: 700,
     color: 'var(--green)',
     fontFamily: 'var(--font-headline)',
   },
   barLabel: {
-    fontSize: 9,
+    fontSize: 'var(--fs-xs)',
     color: 'var(--text-muted)',
     fontWeight: 500,
   },
@@ -240,12 +240,12 @@ const styles = {
     gap: 10,
   },
   chartStatLabel: {
-    fontSize: 13,
+    fontSize: 'var(--fs-body)',
     fontWeight: 600,
     color: 'var(--text-primary)',
   },
   chartStatChange: {
-    fontSize: 12,
+    fontSize: 'var(--fs-small)',
     fontWeight: 500,
   },
 
@@ -269,20 +269,20 @@ const styles = {
   },
   statValue: {
     fontFamily: 'var(--font-headline)',
-    fontSize: 22,
+    fontSize: 'var(--fs-3xl)',
     fontWeight: 800,
     color: 'var(--text-primary)',
     letterSpacing: '-0.02em',
     lineHeight: 1,
   },
   statLabel: {
-    fontSize: 11,
+    fontSize: 'var(--fs-caption)',
     fontWeight: 600,
     color: 'var(--text-secondary)',
     marginTop: 2,
   },
   statSub: {
-    fontSize: 10,
+    fontSize: 'var(--fs-sm)',
     color: 'var(--text-muted)',
   },
 };

@@ -91,7 +91,7 @@ const styles = {
     borderRadius: 11,
     background: 'var(--green)',
     color: '#fff',
-    fontSize: 11,
+    fontSize: 'var(--fs-caption)',
     fontWeight: 700,
     display: 'flex',
     alignItems: 'center',

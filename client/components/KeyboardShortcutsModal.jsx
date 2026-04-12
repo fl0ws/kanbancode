@@ -117,7 +117,7 @@ const styles = {
   },
   title: {
     fontFamily: 'var(--font-headline)',
-    fontSize: 15,
+    fontSize: 'var(--fs-md)',
     fontWeight: 700,
     color: 'var(--text-primary)',
   },
@@ -143,7 +143,7 @@ const styles = {
   group: {},
   groupTitle: {
     fontFamily: 'var(--font-headline)',
-    fontSize: 10,
+    fontSize: 'var(--fs-sm)',
     fontWeight: 700,
     color: 'var(--text-muted)',
     textTransform: 'uppercase',
@@ -180,17 +180,17 @@ const styles = {
     background: 'var(--bg-surface)',
     boxShadow: '0 1px 2px rgba(0,0,0,0.06), 0 0 0 1px var(--border)',
     fontFamily: 'var(--font-body)',
-    fontSize: 11,
+    fontSize: 'var(--fs-caption)',
     fontWeight: 600,
     color: 'var(--text-primary)',
   },
   plus: {
-    fontSize: 10,
+    fontSize: 'var(--fs-sm)',
     color: 'var(--text-muted)',
     margin: '0 2px',
   },
   desc: {
-    fontSize: 12,
+    fontSize: 'var(--fs-small)',
     color: 'var(--text-secondary)',
   },
 };

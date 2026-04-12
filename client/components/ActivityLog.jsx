@@ -204,7 +204,7 @@ const styles = {
   tab: {
     flex: 1,
     padding: '8px 0',
-    fontSize: 12,
+    fontSize: 'var(--fs-small)',
     fontWeight: 500,
     fontFamily: 'var(--font-headline)',
     color: 'var(--text-muted)',
@@ -241,14 +241,14 @@ const styles = {
   },
   empty: {
     color: 'var(--text-muted)',
-    fontSize: 12,
+    fontSize: 'var(--fs-small)',
     textAlign: 'center',
     padding: 16,
   },
 
   // Thoughts
   thoughtsText: {
-    fontSize: 12,
+    fontSize: 'var(--fs-small)',
     lineHeight: 1.5,
     color: 'var(--text-muted)',
     whiteSpace: 'pre-wrap',
@@ -289,7 +289,7 @@ const styles = {
     maxWidth: '80%',
     padding: '8px 12px',
     borderRadius: 'var(--radius-lg)',
-    fontSize: 13,
+    fontSize: 'var(--fs-body)',
     lineHeight: 1.5,
     whiteSpace: 'pre-wrap',
     wordBreak: 'break-word',
@@ -326,7 +326,7 @@ const styles = {
     flexShrink: 0,
   },
   ponderText: {
-    fontSize: 13,
+    fontSize: 'var(--fs-body)',
     color: 'var(--text-muted)',
     fontStyle: 'italic',
   },
@@ -340,14 +340,14 @@ const styles = {
   },
   timestamp: {
     display: 'block',
-    fontSize: 10,
+    fontSize: 'var(--fs-sm)',
     color: 'var(--text-muted)',
     marginTop: 4,
   },
 
   // Author labels
   authorLabel: {
-    fontSize: 10,
+    fontSize: 'var(--fs-sm)',
     fontWeight: 700,
     textTransform: 'uppercase',
     letterSpacing: '0.05em',
@@ -371,12 +371,12 @@ const styles = {
     flexShrink: 0,
   },
   logMessage: {
-    fontSize: 12,
+    fontSize: 'var(--fs-small)',
     color: 'var(--text-muted)',
     flex: 1,
   },
   logTime: {
-    fontSize: 11,
+    fontSize: 'var(--fs-caption)',
     color: 'var(--text-muted)',
     flexShrink: 0,
   },

@@ -152,7 +152,7 @@ const styles = {
     marginBottom: 10,
   },
   title: {
-    fontSize: 10,
+    fontSize: 'var(--fs-sm)',
     fontWeight: 700,
     color: 'var(--text-primary)',
     textTransform: 'uppercase',
@@ -176,12 +176,12 @@ const styles = {
     marginBottom: 4,
   },
   label: {
-    fontSize: 11,
+    fontSize: 'var(--fs-caption)',
     color: 'var(--text-secondary)',
     fontWeight: 500,
   },
   value: {
-    fontSize: 11,
+    fontSize: 'var(--fs-caption)',
     fontWeight: 700,
     fontFamily: 'var(--font-headline)',
   },
@@ -198,7 +198,7 @@ const styles = {
     transition: 'width 0.5s ease',
   },
   resetLabel: {
-    fontSize: 9,
+    fontSize: 'var(--fs-xs)',
     color: 'var(--text-muted)',
     marginTop: 3,
     display: 'block',
@@ -219,12 +219,12 @@ const styles = {
     gap: 2,
   },
   collapsedLabel: {
-    fontSize: 9,
+    fontSize: 'var(--fs-xs)',
     fontWeight: 500,
     color: 'var(--text-muted)',
   },
   collapsedValue: {
-    fontSize: 10,
+    fontSize: 'var(--fs-sm)',
     fontWeight: 700,
     fontFamily: 'var(--font-headline)',
   },

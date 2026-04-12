@@ -116,7 +116,7 @@ const styles = {
     background: 'var(--bg-elevated)',
   },
   name: {
-    fontSize: 13,
+    fontSize: 'var(--fs-body)',
     fontWeight: 600,
     color: 'var(--text-primary)',
     flexShrink: 0,
@@ -125,7 +125,7 @@ const styles = {
     color: 'var(--green)',
   },
   desc: {
-    fontSize: 11,
+    fontSize: 'var(--fs-caption)',
     color: 'var(--text-muted)',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
