@@ -3,6 +3,7 @@ import { useStore } from '../store.js';
 import { askQuestion, replyQuestion, stopQuestion, resetQuestion, listQuestions, loadQuestion, getQuestion, deleteQuestion, qqStatus } from '../api.js';
 import { marked } from 'marked';
 import { useAutoResize } from '../hooks/useAutoResize.js';
+import { useModalClose } from '../hooks/useModalClose.js';
 
 marked.setOptions({ breaks: false, gfm: true });
 
@@ -18,6 +19,7 @@ const IDLE_PHRASES = [
 ];
 
 export default function QuickQuestion({ onClose }) {
+  const { closing, handleClose, overlayStyle, modalStyle } = useModalClose(onClose);
   const activeProjectId = useStore(s => s.activeProjectId);
   const projects = useStore(s => s.projects);
   const activeProject = projects.find(p => p.id === activeProjectId);
@@ -177,12 +179,12 @@ export default function QuickQuestion({ onClose }) {
   }
 
   function handleKeyDown(e) {
-    if (e.key === 'Escape') onClose();
+    if (e.key === 'Escape') handleClose();
   }
 
   return (
-    <div style={styles.overlay} onKeyDown={handleKeyDown}>
-      <div style={styles.modal}>
+    <div style={{ ...styles.overlay, ...overlayStyle }} onKeyDown={handleKeyDown}>
+      <div style={{ ...styles.modal, ...modalStyle }}>
         {/* Sidebar */}
         <div style={styles.sidebar}>
           <div style={styles.sidebarHeader}>
@@ -223,7 +225,7 @@ export default function QuickQuestion({ onClose }) {
                 <span style={styles.headerProject}>{activeProject.name}</span>
               )}
             </div>
-            <button style={styles.closeBtn} onClick={onClose} title="Close">
+            <button style={styles.closeBtn} onClick={handleClose} title="Close">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
               </svg>

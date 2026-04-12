@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { useStore } from '../store.js';
 import { createProject, updateProject, deleteProject } from '../api.js';
+import { useModalClose } from '../hooks/useModalClose.js';
 import FolderPicker from './FolderPicker.jsx';
 
 export default function ManageProjectsModal({ onClose }) {
+  const { closing, handleClose, overlayStyle, modalStyle } = useModalClose(onClose);
   const projects = useStore(s => s.projects);
   const setProjects = useStore(s => s.setProjects);
   const activeProjectId = useStore(s => s.activeProjectId);
@@ -64,11 +66,11 @@ export default function ManageProjectsModal({ onClose }) {
   }
 
   return (
-    <div style={styles.overlay}>
-      <div style={styles.modal}>
+    <div style={{ ...styles.overlay, ...overlayStyle }}>
+      <div style={{ ...styles.modal, ...modalStyle }}>
         <div style={styles.modalHeader}>
           <h2 style={styles.heading}>Manage Projects</h2>
-          <button style={styles.closeBtn} onClick={onClose} title="Close">
+          <button style={styles.closeBtn} onClick={handleClose} title="Close">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
             </svg>
@@ -130,7 +132,7 @@ export default function ManageProjectsModal({ onClose }) {
         {error && <p style={styles.error}>{error}</p>}
 
         <div style={styles.footer}>
-          <button style={styles.btn} onClick={onClose}>Close</button>
+          <button style={styles.btn} onClick={handleClose}>Close</button>
         </div>
       </div>
     </div>

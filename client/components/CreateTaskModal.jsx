@@ -2,9 +2,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import { createTask, moveTask, fetchCommands } from '../api.js';
 import { useStore } from '../store.js';
 import { useAutoResize } from '../hooks/useAutoResize.js';
+import { useModalClose } from '../hooks/useModalClose.js';
 import SlashCommandOverlay from './SlashCommandOverlay.jsx';
 
 export default function CreateTaskModal({ onClose, draft, setDraft }) {
+  const { closing, handleClose, overlayStyle, modalStyle } = useModalClose(onClose);
   const activeProjectId = useStore(s => s.activeProjectId);
 
   const [title, setTitle] = useState(draft?.title || '');
@@ -87,7 +89,7 @@ export default function CreateTaskModal({ onClose, draft, setDraft }) {
         await moveTask(task.id, 'claude');
       }
       setDraft({ title: '', description: '' });
-      onClose();
+      handleClose();
     } catch (err) {
       setError(err.message);
     } finally {
@@ -96,15 +98,15 @@ export default function CreateTaskModal({ onClose, draft, setDraft }) {
   }
 
   return (
-    <div style={styles.overlay}>
-      <div style={styles.modal}>
+    <div style={{ ...styles.overlay, ...overlayStyle }}>
+      <div style={{ ...styles.modal, ...modalStyle }}>
         <div style={styles.modalHeader}>
           <h2 style={styles.heading}>New Task</h2>
           <div style={styles.headerActions}>
             {(title || description) && (
               <button style={styles.clearBtn} onClick={handleClear} title="Clear form">Clear</button>
             )}
-            <button style={styles.closeBtn} onClick={onClose} title="Close">
+            <button style={styles.closeBtn} onClick={handleClose} title="Close">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
             </svg>
@@ -146,7 +148,7 @@ export default function CreateTaskModal({ onClose, draft, setDraft }) {
           </label>
           {error && <p style={styles.error}>{error}</p>}
           <div style={styles.actions}>
-            <button type="button" style={styles.btn} onClick={onClose}>Cancel</button>
+            <button type="button" style={styles.btn} onClick={handleClose}>Cancel</button>
             <button type="submit" style={{ ...styles.btn, ...styles.btnAdd }} disabled={submitting || !title.trim()}>
               {submitting ? 'Creating...' : 'Add to task list'}
             </button>

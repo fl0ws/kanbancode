@@ -62,6 +62,7 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 200,
+    animation: 'modal-overlay-in 180ms ease',
   },
   modal: {
     background: 'var(--bg-surface)',
@@ -70,6 +71,7 @@ const styles = {
     width: 400,
     maxWidth: '90vw',
     boxShadow: 'var(--shadow-lg)',
+    animation: 'modal-in 200ms cubic-bezier(0.2, 0.9, 0.3, 1)',
   },
   heading: {
     fontSize: 18,

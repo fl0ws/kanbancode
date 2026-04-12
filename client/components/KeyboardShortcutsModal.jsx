@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { useModalClose } from '../hooks/useModalClose.js';
 
 const SHORTCUT_GROUPS = [
   {
@@ -37,23 +38,24 @@ const SHORTCUT_GROUPS = [
 ];
 
 export default function KeyboardShortcutsModal({ onClose }) {
+  const { closing, handleClose, overlayStyle, modalStyle } = useModalClose(onClose);
   useEffect(() => {
     function handleKey(e) {
       if (e.key === 'Escape' || e.key === '?') {
         e.preventDefault();
-        onClose();
+        handleClose();
       }
     }
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [onClose]);
+  }, [handleClose]);
 
   return (
-    <div style={styles.overlay} onClick={onClose}>
-      <div style={styles.modal} onClick={e => e.stopPropagation()}>
+    <div style={{ ...styles.overlay, ...overlayStyle }} onClick={handleClose}>
+      <div style={{ ...styles.modal, ...modalStyle }} onClick={e => e.stopPropagation()}>
         <div style={styles.header}>
           <h2 style={styles.title}>Keyboard Shortcuts</h2>
-          <button style={styles.closeBtn} onClick={onClose}>
+          <button style={styles.closeBtn} onClick={handleClose}>
             <span className="material-symbols-outlined" style={{ fontSize: 18 }}>close</span>
           </button>
         </div>
