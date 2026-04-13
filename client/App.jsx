@@ -210,7 +210,6 @@ export default function App() {
               projects={projects}
               activeProject={activeProject}
               onSelect={(id) => setActiveProject(id)}
-              onManage={() => setActivePage('projects')}
             />
           </div>
           <div style={styles.topBarRight}>
@@ -255,7 +254,7 @@ export default function App() {
           <>
             <div style={styles.boardHeader}>
               <h1 style={styles.boardTitle}>Archive</h1>
-              <p style={styles.boardSubtitle}>Archived tasks from {activeProject?.name || 'all projects'}</p>
+              <p style={styles.boardSubtitle}>Archived tasks and projects</p>
             </div>
             <div style={styles.boardArea}>
               <ArchivePage />
@@ -375,7 +374,7 @@ function MultiSelectBar() {
   );
 }
 
-function ProjectSelector({ projects, activeProject, onSelect, onManage }) {
+function ProjectSelector({ projects, activeProject, onSelect }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
@@ -412,10 +411,6 @@ function ProjectSelector({ projects, activeProject, onSelect, onManage }) {
               )}
             </button>
           ))}
-          <div style={styles.projectDivider} />
-          <button style={styles.projectManageBtn} onClick={() => { setOpen(false); onManage(); }}>
-            Manage Projects...
-          </button>
         </div>
       )}
     </div>
@@ -869,24 +864,6 @@ const styles = {
     whiteSpace: 'nowrap',
     width: '100%',
   },
-  projectDivider: {
-    height: 1,
-    background: 'var(--border)',
-    margin: '4px 0',
-  },
-  projectManageBtn: {
-    width: '100%',
-    padding: '8px 14px',
-    border: 'none',
-    background: 'none',
-    cursor: 'pointer',
-    fontSize: 'var(--fs-body)',
-    color: 'var(--green)',
-    textAlign: 'left',
-    fontWeight: 500,
-    transition: 'background 0.1s',
-  },
-
   // ── Multi-select bar ──
   multiBar: {
     position: 'fixed',
