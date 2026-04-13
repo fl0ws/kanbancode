@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useStore } from './store.js';
 import { useWebSocket } from './hooks/useWebSocket.js';
 import { useTheme } from './hooks/useTheme.js';
+import { useFavicon } from './hooks/useFavicon.js';
 import { fetchTasks, fetchPoolStatus, fetchProjects, archiveTask } from './api.js';
 import Board from './components/Board.jsx';
 import TaskDetail from './components/TaskDetail.jsx';
@@ -53,6 +54,7 @@ export default function App() {
   const { zoom, setZoom } = useZoom();
 
   useWebSocket();
+  useFavicon();
 
   const clearCardSelection = useStore(s => s.clearCardSelection);
 
@@ -121,8 +123,7 @@ export default function App() {
     if (activeProjectId) {
       fetchTasks(activeProjectId).then(setTasks);
     }
-    document.title = activeProject ? `CCK: ${activeProject.name}` : 'Claude Code Kanban';
-  }, [activeProjectId, activeProject?.name]);
+  }, [activeProjectId]);
 
   function toggleSidebar() {
     setSidebarCollapsed(prev => {
