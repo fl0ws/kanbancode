@@ -81,7 +81,10 @@ export default function TaskDetail({ taskId }) {
   const [commands, setCommands] = useState([]);
   const [showSlash, setShowSlash] = useState(false);
   const [slashFilter, setSlashFilter] = useState('');
+  const [showEditSlash, setShowEditSlash] = useState(false);
+  const [editSlashFilter, setEditSlashFilter] = useState('');
   const replyRef = useRef(null);
+  const editDescRef = useRef(null);
   const { handleInput: handleReplyResize, resetHeight } = useAutoResize(5);
 
   useEffect(() => {
@@ -172,6 +175,34 @@ export default function TaskDetail({ taskId }) {
     }, 0);
   }
 
+  function handleEditDescChange(e) {
+    const val = e.target.value;
+    setEditDesc(val);
+
+    const cursorPos = e.target.selectionStart;
+    const textBefore = val.slice(0, cursorPos);
+    const lastLineStart = textBefore.lastIndexOf('\n') + 1;
+    const currentLine = textBefore.slice(lastLineStart);
+
+    if (currentLine.startsWith('/')) {
+      setShowEditSlash(true);
+      setEditSlashFilter(currentLine.slice(1));
+    } else {
+      setShowEditSlash(false);
+    }
+  }
+
+  function handleEditSelectCommand(cmd) {
+    const cursorPos = editDescRef.current?.selectionStart || editDesc.length;
+    const textBefore = editDesc.slice(0, cursorPos);
+    const textAfter = editDesc.slice(cursorPos);
+    const lastLineStart = textBefore.lastIndexOf('\n') + 1;
+    const before = editDesc.slice(0, lastLineStart);
+    setEditDesc(before + cmd.template + textAfter);
+    setShowEditSlash(false);
+    setTimeout(() => editDescRef.current?.focus(), 0);
+  }
+
   async function handleReply(e, closeAfter = false) {
     e.preventDefault();
     if (!reply.trim()) return;
@@ -231,7 +262,26 @@ export default function TaskDetail({ taskId }) {
             {editing ? (
               <div style={styles.editForm}>
                 <input style={styles.editInput} value={editTitle} onChange={e => setEditTitle(e.target.value)} />
-                <textarea style={styles.editTextarea} value={editDesc} onChange={e => setEditDesc(e.target.value)} rows={5} />
+                <div style={{ position: 'relative' }}>
+                  <textarea
+                    ref={editDescRef}
+                    style={styles.editTextarea}
+                    value={editDesc}
+                    onChange={handleEditDescChange}
+                    onKeyDown={e => { if (e.key === 'Escape' && showEditSlash) e.stopPropagation(); }}
+                    rows={5}
+                    placeholder='Description... Type "/" for commands'
+                  />
+                  {showEditSlash && (
+                    <SlashCommandOverlay
+                      commands={commands}
+                      filter={editSlashFilter}
+                      onSelect={handleEditSelectCommand}
+                      onClose={() => setShowEditSlash(false)}
+                      anchorRef={editDescRef}
+                    />
+                  )}
+                </div>
                 <div style={styles.editActions}>
                   <button style={styles.smallBtn} onClick={() => setEditing(false)}>Cancel</button>
                   <button style={{ ...styles.smallBtn, ...styles.btnGreen }} onClick={saveEdit}>Save</button>
