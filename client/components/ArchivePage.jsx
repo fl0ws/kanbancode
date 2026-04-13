@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
-  fetchArchived, unarchiveTask, deleteTask,
+  fetchArchived, fetchTask, unarchiveTask, deleteTask,
   fetchArchivedProjects, unarchiveProject, deleteProject,
 } from '../api.js';
 import { useStore } from '../store.js';
@@ -11,6 +11,10 @@ export default function ArchivePage() {
   const activeProjectId = useStore(s => s.activeProjectId);
   const projects = useStore(s => s.projects);
   const setProjects = useStore(s => s.setProjects);
+  const selectedTaskId = useStore(s => s.selectedTaskId);
+  const updateTaskInStore = useStore(s => s.updateTask);
+  const setSelectedTask = useStore(s => s.setSelectedTask);
+  const prevSelectedRef = useRef(selectedTaskId);
 
   // Task archive state
   const [taskQuery, setTaskQuery] = useState('');
@@ -22,6 +26,9 @@ export default function ArchivePage() {
   const [projectPage, setProjectPage] = useState(0);
   const [projectData, setProjectData] = useState({ rows: [], total: 0 });
   const [projectsLoading, setProjectsLoading] = useState(true);
+
+  // Tab state
+  const [tab, setTab] = useState('tasks');
 
   // Task loader
   const loadTasks = useCallback(async (q) => {
@@ -65,6 +72,28 @@ export default function ArchivePage() {
     return () => clearTimeout(t);
   }, [projectQuery]);
 
+  // When the task detail modal closes, reload the archive list in case
+  // the viewed task was restored or deleted.
+  useEffect(() => {
+    if (prevSelectedRef.current && !selectedTaskId) {
+      loadTasks(taskQuery);
+    }
+    prevSelectedRef.current = selectedTaskId;
+  }, [selectedTaskId, loadTasks, taskQuery]);
+
+  async function handleOpenTask(task, e) {
+    e.stopPropagation();
+    try {
+      const full = await fetchTask(task.id);
+      updateTaskInStore(full);
+      setSelectedTask(task.id);
+    } catch {
+      // If fetching full data fails, fall back to the list data we already have
+      updateTaskInStore(task);
+      setSelectedTask(task.id);
+    }
+  }
+
   // Task actions
   async function handleRestoreTask(id) {
     await unarchiveTask(id);
@@ -94,21 +123,49 @@ export default function ArchivePage() {
 
   return (
     <div style={styles.container}>
-      {/* Tasks section */}
-      <div style={styles.section}>
-        <div style={styles.sectionHeader}>
-          <h2 style={styles.sectionTitle}>Archived Tasks</h2>
-          <div style={styles.searchBox}>
-            <span className="material-symbols-outlined" style={{ fontSize: 16, color: 'var(--text-muted)' }}>search</span>
+      {/* Tab bar */}
+      <div style={styles.tabBar}>
+        <button
+          style={{ ...styles.tab, ...(tab === 'tasks' ? styles.tabActive : {}) }}
+          onClick={() => setTab('tasks')}
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: 16 }}>task</span>
+          Tasks
+          {tasks.length > 0 && <span style={styles.tabCount}>{tasks.length}</span>}
+        </button>
+        <button
+          style={{ ...styles.tab, ...(tab === 'projects' ? styles.tabActive : {}) }}
+          onClick={() => setTab('projects')}
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: 16 }}>folder</span>
+          Projects
+          {projectData.total > 0 && <span style={styles.tabCount}>{projectData.total}</span>}
+        </button>
+
+        <div style={styles.tabSpacer} />
+
+        <div style={styles.searchBox}>
+          <span className="material-symbols-outlined" style={{ fontSize: 16, color: 'var(--text-muted)' }}>search</span>
+          {tab === 'tasks' ? (
             <input
               style={styles.searchInput}
               value={taskQuery}
               onChange={e => setTaskQuery(e.target.value)}
               placeholder="Search archived tasks..."
             />
-          </div>
+          ) : (
+            <input
+              style={styles.searchInput}
+              value={projectQuery}
+              onChange={e => setProjectQuery(e.target.value)}
+              placeholder="Search archived projects..."
+            />
+          )}
         </div>
+      </div>
 
+      {/* Tab content */}
+      {tab === 'tasks' && (
         <div style={styles.list}>
           {tasksLoading && tasks.length === 0 && (
             <div style={styles.emptyState}><span style={styles.empty}>Loading...</span></div>
@@ -121,7 +178,11 @@ export default function ArchivePage() {
             </div>
           )}
           {tasks.map(task => (
-            <div key={task.id} style={styles.item}>
+            <div
+              key={task.id}
+              style={{ ...styles.item, cursor: 'pointer' }}
+              onClick={(e) => handleOpenTask(task, e)}
+            >
               <div style={styles.itemContent}>
                 <span style={styles.title}>{task.title}</span>
                 {task.description && <span style={styles.desc}>{task.description.slice(0, 120)}{task.description.length > 120 ? '...' : ''}</span>}
@@ -131,86 +192,74 @@ export default function ArchivePage() {
                 </span>
               </div>
               <div style={styles.actions}>
-                <button style={styles.restoreBtn} onClick={() => handleRestoreTask(task.id)} title="Restore to Not Started">
+                <button style={styles.restoreBtn} onClick={(e) => { e.stopPropagation(); handleRestoreTask(task.id); }} title="Restore to Not Started">
                   <span className="material-symbols-outlined" style={{ fontSize: 16 }}>unarchive</span>
                   Restore
                 </button>
-                <button style={styles.deleteBtn} onClick={() => handleDeleteTask(task.id)} title="Permanently delete">
+                <button style={styles.deleteBtn} onClick={(e) => { e.stopPropagation(); handleDeleteTask(task.id); }} title="Permanently delete">
                   <span className="material-symbols-outlined" style={{ fontSize: 16 }}>delete</span>
                 </button>
               </div>
             </div>
           ))}
         </div>
-      </div>
+      )}
 
-      {/* Projects section */}
-      <div style={styles.section}>
-        <div style={styles.sectionHeader}>
-          <h2 style={styles.sectionTitle}>Archived Projects</h2>
-          <div style={styles.searchBox}>
-            <span className="material-symbols-outlined" style={{ fontSize: 16, color: 'var(--text-muted)' }}>search</span>
-            <input
-              style={styles.searchInput}
-              value={projectQuery}
-              onChange={e => setProjectQuery(e.target.value)}
-              placeholder="Search archived projects..."
-            />
+      {tab === 'projects' && (
+        <>
+          <div style={styles.list}>
+            {projectsLoading && projectData.rows.length === 0 && (
+              <div style={styles.emptyState}><span style={styles.empty}>Loading...</span></div>
+            )}
+            {!projectsLoading && projectData.rows.length === 0 && (
+              <div style={styles.emptyState}>
+                <span className="material-symbols-outlined" style={{ fontSize: 36, color: 'var(--text-muted)', marginBottom: 8 }}>folder_off</span>
+                <span style={styles.emptyTitle}>{projectQuery ? 'No matches' : 'No archived projects'}</span>
+                <span style={styles.emptyDesc}>{projectQuery ? 'Try a different search' : 'Projects you archive will appear here'}</span>
+              </div>
+            )}
+            {projectData.rows.map(project => (
+              <div key={project.id} style={styles.item}>
+                <div style={styles.itemContent}>
+                  <span style={styles.title}>{project.name}</span>
+                  {project.working_dir && <span style={styles.projectDir}>{project.working_dir}</span>}
+                </div>
+                <div style={styles.actions}>
+                  <button style={styles.restoreBtn} onClick={() => handleRestoreProject(project)} title="Restore project">
+                    <span className="material-symbols-outlined" style={{ fontSize: 16 }}>unarchive</span>
+                    Restore
+                  </button>
+                  <button style={styles.deleteBtn} onClick={() => handleDeleteProject(project.id)} title="Permanently delete">
+                    <span className="material-symbols-outlined" style={{ fontSize: 16 }}>delete</span>
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
-        </div>
 
-        <div style={styles.list}>
-          {projectsLoading && projectData.rows.length === 0 && (
-            <div style={styles.emptyState}><span style={styles.empty}>Loading...</span></div>
-          )}
-          {!projectsLoading && projectData.rows.length === 0 && (
-            <div style={styles.emptyState}>
-              <span className="material-symbols-outlined" style={{ fontSize: 36, color: 'var(--text-muted)', marginBottom: 8 }}>folder_off</span>
-              <span style={styles.emptyTitle}>{projectQuery ? 'No matches' : 'No archived projects'}</span>
-              <span style={styles.emptyDesc}>{projectQuery ? 'Try a different search' : 'Projects you archive will appear here'}</span>
+          {totalProjectPages > 1 && (
+            <div style={styles.pagination}>
+              <button
+                style={styles.pageBtn}
+                onClick={() => setProjectPage(p => Math.max(0, p - 1))}
+                disabled={projectPage === 0}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: 16 }}>chevron_left</span>
+              </button>
+              <span style={styles.pageInfo}>
+                Page {projectPage + 1} of {totalProjectPages} · {projectData.total} total
+              </span>
+              <button
+                style={styles.pageBtn}
+                onClick={() => setProjectPage(p => Math.min(totalProjectPages - 1, p + 1))}
+                disabled={projectPage >= totalProjectPages - 1}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: 16 }}>chevron_right</span>
+              </button>
             </div>
           )}
-          {projectData.rows.map(project => (
-            <div key={project.id} style={styles.item}>
-              <div style={styles.itemContent}>
-                <span style={styles.title}>{project.name}</span>
-                {project.working_dir && <span style={styles.projectDir}>{project.working_dir}</span>}
-              </div>
-              <div style={styles.actions}>
-                <button style={styles.restoreBtn} onClick={() => handleRestoreProject(project)} title="Restore project">
-                  <span className="material-symbols-outlined" style={{ fontSize: 16 }}>unarchive</span>
-                  Restore
-                </button>
-                <button style={styles.deleteBtn} onClick={() => handleDeleteProject(project.id)} title="Permanently delete">
-                  <span className="material-symbols-outlined" style={{ fontSize: 16 }}>delete</span>
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {totalProjectPages > 1 && (
-          <div style={styles.pagination}>
-            <button
-              style={styles.pageBtn}
-              onClick={() => setProjectPage(p => Math.max(0, p - 1))}
-              disabled={projectPage === 0}
-            >
-              <span className="material-symbols-outlined" style={{ fontSize: 16 }}>chevron_left</span>
-            </button>
-            <span style={styles.pageInfo}>
-              Page {projectPage + 1} of {totalProjectPages} · {projectData.total} total
-            </span>
-            <button
-              style={styles.pageBtn}
-              onClick={() => setProjectPage(p => Math.min(totalProjectPages - 1, p + 1))}
-              disabled={projectPage >= totalProjectPages - 1}
-            >
-              <span className="material-symbols-outlined" style={{ fontSize: 16 }}>chevron_right</span>
-            </button>
-          </div>
-        )}
-      </div>
+        </>
+      )}
     </div>
   );
 }
@@ -231,24 +280,46 @@ const styles = {
     overflowY: 'auto',
     display: 'flex',
     flexDirection: 'column',
-    gap: 28,
   },
-  section: {
-    display: 'flex',
-    flexDirection: 'column',
-  },
-  sectionHeader: {
+  tabBar: {
     display: 'flex',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-    gap: 12,
+    gap: 4,
+    marginBottom: 16,
+    borderBottom: '1px solid var(--border)',
+    paddingBottom: 0,
   },
-  sectionTitle: {
+  tab: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 6,
+    padding: '10px 14px',
+    border: 'none',
+    background: 'none',
+    color: 'var(--text-secondary)',
+    fontSize: 'var(--fs-body)',
+    fontWeight: 600,
     fontFamily: 'var(--font-headline)',
-    fontSize: 'var(--fs-md)',
+    cursor: 'pointer',
+    borderBottom: '2px solid transparent',
+    marginBottom: -1,
+    transition: 'color 0.15s, border-color 0.15s',
+  },
+  tabActive: {
+    color: 'var(--green)',
+    borderBottomColor: 'var(--green)',
+  },
+  tabCount: {
+    background: 'var(--bg-elevated)',
+    color: 'var(--text-secondary)',
+    fontSize: 'var(--fs-sm)',
     fontWeight: 700,
-    color: 'var(--text-primary)',
+    padding: '1px 7px',
+    borderRadius: 'var(--radius-sm)',
+    fontFamily: 'var(--font-body)',
+  },
+  tabSpacer: {
+    flex: 1,
   },
   searchBox: {
     display: 'flex',

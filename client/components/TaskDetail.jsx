@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useStore } from '../store.js';
-import { fetchOutput, moveTask, stopTask, updateTask, logActivity, archiveTask, deleteTask, fetchCommands } from '../api.js';
+import { fetchOutput, moveTask, stopTask, updateTask, logActivity, archiveTask, unarchiveTask, deleteTask, fetchCommands } from '../api.js';
 import { useAutoResize } from '../hooks/useAutoResize.js';
 import { marked } from 'marked';
 import hljs from 'highlight.js/lib/core';
@@ -115,6 +115,7 @@ export default function TaskDetail({ taskId }) {
   if (!task) return null;
 
   const isRunning = poolStatus.running?.includes(taskId);
+  const isArchived = task.archived === 1;
   const tagStyle = COLUMN_TAG_STYLES[task.column] || COLUMN_TAG_STYLES.not_started;
 
   function startEdit() {
@@ -237,6 +238,11 @@ export default function TaskDetail({ taskId }) {
     setSelectedTask(null);
   }
 
+  async function handleRestore() {
+    await unarchiveTask(taskId);
+    setSelectedTask(null);
+  }
+
   async function handleDelete() {
     if (!confirm('Permanently delete this task?')) return;
     await deleteTask(taskId);
@@ -252,18 +258,26 @@ export default function TaskDetail({ taskId }) {
           <button style={styles.closeBtn} onClick={handleClose} title="Close">
             <span className="material-symbols-outlined" style={{ fontSize: 18 }}>close</span>
           </button>
-          <span style={{ ...styles.statusTag, ...tagStyle }}>
+          <span style={{ ...styles.statusTag, ...(isArchived ? { background: 'var(--bg-elevated)', color: 'var(--text-muted)' } : tagStyle) }}>
             {isRunning && <span style={styles.statusDot} />}
-            {COLUMN_LABELS[task.column]}
+            {isArchived ? 'Archived' : COLUMN_LABELS[task.column]}
           </span>
         </div>
         <div style={styles.headerRight}>
-          {task.column === 'claude' && (
-            <button style={styles.headerAction} onClick={handleStop}>
-              <span style={{ color: 'var(--red)' }}>Stop</span>
+          {isArchived ? (
+            <button style={styles.headerAction} onClick={handleRestore}>
+              <span style={{ color: 'var(--green)' }}>Restore</span>
             </button>
+          ) : (
+            <>
+              {task.column === 'claude' && (
+                <button style={styles.headerAction} onClick={handleStop}>
+                  <span style={{ color: 'var(--red)' }}>Stop</span>
+                </button>
+              )}
+              <button style={styles.headerAction} onClick={handleArchive}>Archive</button>
+            </>
           )}
-          <button style={styles.headerAction} onClick={handleArchive}>Archive</button>
         </div>
       </div>
 
@@ -300,7 +314,7 @@ export default function TaskDetail({ taskId }) {
                 </div>
               </div>
             ) : (
-              <div style={styles.taskInfo} onClick={startEdit}>
+              <div style={styles.taskInfo} onClick={isArchived ? undefined : startEdit}>
                 <h2 style={styles.taskTitle}>{task.title}</h2>
                 {task.description && (
                   <div
@@ -339,14 +353,16 @@ export default function TaskDetail({ taskId }) {
             {task.needs_input === 1 && !pendingQuestions && <NeedsInputBanner task={task} onStop={handleStop} />}
           </div>
 
-          <div style={styles.quickActions}>
-            {NEXT_COLUMN[task.column] && (
-              <button style={{ ...styles.actionBtn, ...styles.moveBtn }} onClick={() => handleMove(NEXT_COLUMN[task.column])}>
-                Move to {COLUMN_LABELS[NEXT_COLUMN[task.column]]}
-              </button>
-            )}
-            <button style={{ ...styles.actionBtn, ...styles.deleteBtn }} onClick={handleDelete}>Delete</button>
-          </div>
+          {!isArchived && (
+            <div style={styles.quickActions}>
+              {NEXT_COLUMN[task.column] && (
+                <button style={{ ...styles.actionBtn, ...styles.moveBtn }} onClick={() => handleMove(NEXT_COLUMN[task.column])}>
+                  Move to {COLUMN_LABELS[NEXT_COLUMN[task.column]]}
+                </button>
+              )}
+              <button style={{ ...styles.actionBtn, ...styles.deleteBtn }} onClick={handleDelete}>Delete</button>
+            </div>
+          )}
         </div>
 
         {/* Right: chat/thoughts/log + reply */}
