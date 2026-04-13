@@ -64,3 +64,13 @@ export const fetchProjects = () => request('/projects');
 export const createProject = (data) => request('/projects', { method: 'POST', body: JSON.stringify(data) });
 export const updateProject = (id, data) => request(`/projects/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
 export const deleteProject = (id) => request(`/projects/${id}`, { method: 'DELETE' });
+export const archiveProject = (id) => request(`/projects/${id}/archive`, { method: 'POST' });
+export const unarchiveProject = (id) => request(`/projects/${id}/unarchive`, { method: 'POST' });
+export const fetchArchivedProjects = (q, limit, offset) => {
+  const params = new URLSearchParams();
+  if (q) params.set('q', q);
+  if (limit != null) params.set('limit', limit);
+  if (offset != null) params.set('offset', offset);
+  const qs = params.toString();
+  return request(`/projects/archived${qs ? `?${qs}` : ''}`);
+};

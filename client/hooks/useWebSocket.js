@@ -182,7 +182,16 @@ export function useWebSocket() {
         case 'project:created':
         case 'project:updated':
         case 'project:deleted':
-          fetchProjects().then(projects => s.setProjects(projects));
+        case 'project:archived':
+        case 'project:unarchived':
+          fetchProjects().then(projects => {
+            s.setProjects(projects);
+            // If the active project was archived/deleted, switch to another
+            const currentActive = s.activeProjectId;
+            if (currentActive && !projects.find(p => p.id === currentActive)) {
+              s.setActiveProject(projects[0]?.id || null);
+            }
+          });
           break;
         case 'dreaming:started':
           s.setDreaming(true);

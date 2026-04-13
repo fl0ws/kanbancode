@@ -10,7 +10,7 @@ import CreateTaskModal from './components/CreateTaskModal.jsx';
 import ArchivePage from './components/ArchivePage.jsx';
 import ConcurrencyPrompt from './components/ConcurrencyPrompt.jsx';
 import SettingsModal from './components/SettingsModal.jsx';
-import ManageProjectsModal from './components/ManageProjectsModal.jsx';
+import ProjectsPage from './components/ProjectsPage.jsx';
 import QuickQuestion from './components/QuickQuestion.jsx';
 import ManageCommandsModal from './components/ManageCommandsModal.jsx';
 import NotificationBell from './components/NotificationBell.jsx';
@@ -36,7 +36,6 @@ export default function App() {
   const [showCommands, setShowCommands] = useState(false);
   const [showQuickQuestion, setShowQuickQuestion] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [showManageProjects, setShowManageProjects] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [toast, setToast] = useState(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem('kanban_sidebar_collapsed') === 'true');
@@ -177,6 +176,7 @@ export default function App() {
         <nav style={styles.nav}>
           <NavItem icon="dashboard" label="Board" active={activePage === 'board'} filled onClick={() => setActivePage('board')} collapsed={sidebarCollapsed} />
           <NavItem icon="analytics" label="Analytics" active={activePage === 'analytics'} filled onClick={() => setActivePage('analytics')} collapsed={sidebarCollapsed} />
+          <NavItem icon="folder" label="Projects" active={activePage === 'projects'} filled onClick={() => setActivePage('projects')} collapsed={sidebarCollapsed} />
           <NavItem icon="inventory_2" label="Archive" active={activePage === 'archive'} filled onClick={() => setActivePage('archive')} collapsed={sidebarCollapsed} />
           <NavItem icon="terminal" label="Commands" onClick={() => setShowCommands(true)} collapsed={sidebarCollapsed} />
         </nav>
@@ -210,7 +210,7 @@ export default function App() {
               projects={projects}
               activeProject={activeProject}
               onSelect={(id) => setActiveProject(id)}
-              onManage={() => setShowManageProjects(true)}
+              onManage={() => setActivePage('projects')}
             />
           </div>
           <div style={styles.topBarRight}>
@@ -262,13 +262,24 @@ export default function App() {
             </div>
           </>
         )}
+
+        {activePage === 'projects' && (
+          <>
+            <div style={styles.boardHeader}>
+              <h1 style={styles.boardTitle}>Projects</h1>
+              <p style={styles.boardSubtitle}>Manage active and archived projects</p>
+            </div>
+            <div style={styles.boardArea}>
+              <ProjectsPage />
+            </div>
+          </>
+        )}
       </main>
 
       {/* ═══ Overlays ═══ */}
       {selectedTaskId && <TaskDetail taskId={selectedTaskId} />}
       {showCreate && <CreateTaskModal onClose={() => setShowCreate(false)} draft={createDraft} setDraft={setCreateDraft} />}
       {showSettings && <SettingsModal onClose={() => setShowSettings(false)} onSaved={() => { setShowSettings(false); showToast('Settings saved'); }} zoom={zoom} setZoom={setZoom} />}
-      {showManageProjects && <ManageProjectsModal onClose={() => setShowManageProjects(false)} />}
       {showCommands && <ManageCommandsModal onClose={() => setShowCommands(false)} />}
       {showQuickQuestion && <QuickQuestion onClose={() => setShowQuickQuestion(false)} />}
       {showConcurrencyPrompt && <ConcurrencyPrompt />}

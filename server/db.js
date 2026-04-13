@@ -293,7 +293,7 @@ export function getStuckClaudeTasks() {
 // --- Projects ---
 
 export function getProjects() {
-  return all('SELECT * FROM projects ORDER BY created_at ASC');
+  return all('SELECT * FROM projects WHERE COALESCE(archived, 0) = 0 ORDER BY created_at ASC');
 }
 
 export function getProject(id) {
@@ -319,6 +319,38 @@ export function updateProject(id, name, workingDir) {
 export function deleteProject(id) {
   // Tasks cascade-delete via FK
   run('DELETE FROM projects WHERE id = ?', [id]);
+}
+
+export function archiveProject(id) {
+  run('UPDATE projects SET archived = 1, updated_at = datetime(\'now\') WHERE id = ?', [id]);
+}
+
+export function unarchiveProject(id) {
+  run('UPDATE projects SET archived = 0, updated_at = datetime(\'now\') WHERE id = ?', [id]);
+  return getProject(id);
+}
+
+export function getArchivedProjects(query, limit = 20, offset = 0) {
+  const q = (query || '').trim();
+  if (q) {
+    const like = `%${q}%`;
+    const rows = all(
+      `SELECT * FROM projects WHERE archived = 1 AND (name LIKE ? OR working_dir LIKE ?)
+       ORDER BY updated_at DESC LIMIT ? OFFSET ?`,
+      [like, like, limit, offset]
+    );
+    const total = get(
+      'SELECT COUNT(*) as c FROM projects WHERE archived = 1 AND (name LIKE ? OR working_dir LIKE ?)',
+      [like, like]
+    );
+    return { rows, total: total?.c || 0 };
+  }
+  const rows = all(
+    'SELECT * FROM projects WHERE archived = 1 ORDER BY updated_at DESC LIMIT ? OFFSET ?',
+    [limit, offset]
+  );
+  const total = get('SELECT COUNT(*) as c FROM projects WHERE archived = 1');
+  return { rows, total: total?.c || 0 };
 }
 
 // --- Quick Questions ---

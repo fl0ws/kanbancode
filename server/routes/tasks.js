@@ -268,6 +268,40 @@ router.get('/api/projects', (req, res) => {
   res.json(db.getProjects());
 });
 
+router.get('/api/projects/archived', (req, res) => {
+  const query = req.query.q || '';
+  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 20));
+  const offset = Math.max(0, parseInt(req.query.offset) || 0);
+  res.json(db.getArchivedProjects(query, limit, offset));
+});
+
+router.post('/api/projects/:id/archive', (req, res) => {
+  const project = db.getProject(req.params.id);
+  if (!project) return res.status(404).json({ error: 'Project not found' });
+
+  // Stop any running tasks in this project
+  const tasks = db.getTasks(null, req.params.id);
+  for (const task of tasks) {
+    if (task.column === 'claude' && router.onStopCallback) {
+      router.onStopCallback(task.id);
+    }
+  }
+
+  db.archiveProject(req.params.id);
+  broadcast('project:archived', { id: req.params.id });
+  logger.info('Project archived', { projectId: req.params.id });
+  res.json({ ok: true });
+});
+
+router.post('/api/projects/:id/unarchive', (req, res) => {
+  const project = db.getProject(req.params.id);
+  if (!project) return res.status(404).json({ error: 'Project not found' });
+  const updated = db.unarchiveProject(req.params.id);
+  broadcast('project:unarchived', { project: updated });
+  logger.info('Project unarchived', { projectId: req.params.id });
+  res.json(updated);
+});
+
 router.get('/api/projects/:id', (req, res) => {
   const project = db.getProject(req.params.id);
   if (!project) return res.status(404).json({ error: 'Project not found' });
