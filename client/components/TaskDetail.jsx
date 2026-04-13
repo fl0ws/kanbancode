@@ -86,6 +86,7 @@ export default function TaskDetail({ taskId }) {
   const replyRef = useRef(null);
   const editDescRef = useRef(null);
   const { handleInput: handleReplyResize, resetHeight } = useAutoResize(5);
+  const { handleInput: handleEditDescResize } = useAutoResize(25);
 
   useEffect(() => {
     fetchCommands().then(setCommands).catch(() => {});
@@ -121,6 +122,16 @@ export default function TaskDetail({ taskId }) {
     setEditDesc(task.description);
     setEditing(true);
   }
+
+  // Auto-size edit textarea when entering edit mode (so existing long
+  // descriptions expand on first render instead of showing a tiny scroll box)
+  useEffect(() => {
+    if (editing && editDescRef.current) {
+      const el = editDescRef.current;
+      el.style.height = 'auto';
+      el.style.height = Math.min(el.scrollHeight, 500) + 'px';
+    }
+  }, [editing]);
 
   async function saveEdit() {
     await updateTask(taskId, { title: editTitle, description: editDesc });
@@ -178,6 +189,7 @@ export default function TaskDetail({ taskId }) {
   function handleEditDescChange(e) {
     const val = e.target.value;
     setEditDesc(val);
+    handleEditDescResize(e);
 
     const cursorPos = e.target.selectionStart;
     const textBefore = val.slice(0, cursorPos);
@@ -576,9 +588,14 @@ const styles = {
     background: 'var(--bg-input)',
     color: 'var(--text-primary)',
     fontSize: 'var(--fs-body)',
-    resize: 'vertical',
+    resize: 'none',
     fontFamily: 'inherit',
     outline: 'none',
+    width: '100%',
+    minHeight: 80,
+    maxHeight: 500,
+    overflowY: 'auto',
+    lineHeight: 1.5,
   },
   editActions: {
     display: 'flex',
