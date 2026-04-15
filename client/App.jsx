@@ -56,6 +56,23 @@ export default function App() {
   useFavicon();
 
   const clearCardSelection = useStore(s => s.clearCardSelection);
+  const markAllNotificationsRead = useStore(s => s.markAllNotificationsRead);
+
+  // Clear notifications (favicon badge + bell badge) when focus returns to the page —
+  // if the user is looking at the board, assume they've seen what changed.
+  useEffect(() => {
+    function clearIfVisible() {
+      if (document.visibilityState === 'visible') {
+        markAllNotificationsRead();
+      }
+    }
+    window.addEventListener('focus', clearIfVisible);
+    document.addEventListener('visibilitychange', clearIfVisible);
+    return () => {
+      window.removeEventListener('focus', clearIfVisible);
+      document.removeEventListener('visibilitychange', clearIfVisible);
+    };
+  }, []);
 
   // Keyboard shortcuts
   useEffect(() => {

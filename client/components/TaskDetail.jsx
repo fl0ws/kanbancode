@@ -436,8 +436,8 @@ const styles = {
     animation: 'detail-overlay-out 0.2s ease forwards',
   },
   panel: {
-    width: 960,
-    maxWidth: '92vw',
+    width: 1400,
+    maxWidth: '96vw',
     height: '85vh',
     background: 'var(--bg-surface)',
     borderRadius: 'var(--radius-xl)',
