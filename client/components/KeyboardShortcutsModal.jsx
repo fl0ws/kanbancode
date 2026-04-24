@@ -13,6 +13,9 @@ const SHORTCUT_GROUPS = [
     title: 'Tasks',
     shortcuts: [
       { keys: ['N'], desc: 'Create new task' },
+      { keys: ['Enter'], desc: 'Add task to list (in New Task form)' },
+      { keys: ['Shift', 'Enter'], desc: 'New line in description (in New Task form)' },
+      { keys: ['Ctrl', 'Enter'], desc: 'Create and give to Claude (in New Task form)' },
       { keys: ['Ctrl', 'Space'], desc: 'Quick question' },
       { keys: ['Ctrl', 'Click'], desc: 'Multi-select cards' },
       { keys: ['Delete'], desc: 'Delete selected cards' },

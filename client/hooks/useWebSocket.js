@@ -88,11 +88,18 @@ export function useWebSocket() {
       const isActiveProject = (task) => task?.project_id === activeProjectId;
       const isTaskInStore = (taskId) => !!s.tasks[taskId];
 
+      // Refresh project list (with per-column task counts) when a task
+      // event could have changed the counts for any project.
+      const refreshProjectCounts = () => {
+        fetchProjects().then(projects => store.getState().setProjects(projects)).catch(() => {});
+      };
+
       switch (data.event) {
         case 'task:created':
           if (isActiveProject(data.task)) {
             s.addTask(data.task);
           }
+          refreshProjectCounts();
           break;
         case 'task:updated':
           if (isActiveProject(data.task)) {
@@ -137,21 +144,25 @@ export function useWebSocket() {
               });
             }
           }
+          refreshProjectCounts();
           break;
         case 'task:deleted':
           if (isTaskInStore(data.id)) {
             s.deleteTask(data.id);
           }
+          refreshProjectCounts();
           break;
         case 'task:archived':
           if (isTaskInStore(data.id)) {
             s.archiveTask(data.id);
           }
+          refreshProjectCounts();
           break;
         case 'task:unarchived':
           if (isActiveProject(data.task)) {
             s.unarchiveTask(data.task);
           }
+          refreshProjectCounts();
           break;
         case 'task:activity':
           if (isTaskInStore(data.taskId)) {

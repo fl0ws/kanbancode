@@ -113,7 +113,16 @@ export default function CreateTaskModal({ onClose, draft, setDraft }) {
           </button>
           </div>
         </div>
-        <form onSubmit={e => { e.preventDefault(); handleCreate(false); }} style={styles.form}>
+        <form
+          onSubmit={e => { e.preventDefault(); handleCreate(false); }}
+          onKeyDown={e => {
+            if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && title.trim() && !submitting) {
+              e.preventDefault();
+              handleCreate(true);
+            }
+          }}
+          style={styles.form}
+        >
           <label style={styles.label}>
             Title
             <input
@@ -132,6 +141,12 @@ export default function CreateTaskModal({ onClose, draft, setDraft }) {
                 style={{ ...styles.input, ...styles.textarea }}
                 value={description}
                 onChange={handleDescChange}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.metaKey && !showSlash) {
+                    e.preventDefault();
+                    if (title.trim() && !submitting) handleCreate(false);
+                  }
+                }}
                 placeholder='Details, requirements, context... Type "/" for commands'
                 rows={2}
               />

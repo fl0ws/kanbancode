@@ -3,6 +3,13 @@ import { useStore } from '../store.js';
 import { createProject, updateProject, archiveProject, deleteProject } from '../api.js';
 import FolderPicker from './FolderPicker.jsx';
 
+const COUNT_COLUMNS = [
+  { key: 'count_not_started', label: 'To Do',     style: { background: 'var(--bg-elevated)',       color: 'var(--text-secondary)' } },
+  { key: 'count_claude',      label: 'Claude',    style: { background: 'var(--purple-bg)',         color: 'var(--purple)' } },
+  { key: 'count_your_turn',   label: 'Your Turn', style: { background: 'var(--orange-bg)',         color: 'var(--orange)' } },
+  { key: 'count_done',        label: 'Done',      style: { background: 'var(--tertiary-container)', color: 'var(--tertiary)' } },
+];
+
 export default function ProjectsPage() {
   const projects = useStore(s => s.projects);
   const setProjects = useStore(s => s.setProjects);
@@ -43,7 +50,9 @@ export default function ProjectsPage() {
     setError(null);
     try {
       const updated = await updateProject(id, { name: editName, working_dir: editDir.trim() || null });
-      setProjects(projects.map(p => p.id === id ? updated : p));
+      // Preserve count fields (the update endpoint doesn't return them); the
+      // websocket will refresh shortly anyway, this just avoids a brief flash to 0.
+      setProjects(projects.map(p => p.id === id ? { ...p, ...updated } : p));
       setEditing(null);
     } catch (err) {
       setError(err.message);
@@ -140,6 +149,14 @@ export default function ProjectsPage() {
                     {project.id === activeProjectId && <span style={styles.activeBadge}>Active</span>}
                   </div>
                   {project.working_dir && <span style={styles.itemDir}>{project.working_dir}</span>}
+                </div>
+                <div style={styles.counts}>
+                  {COUNT_COLUMNS.map(col => (
+                    <div key={col.key} style={{ ...styles.countChip, ...col.style }}>
+                      <span style={styles.countNumber}>{project[col.key] ?? 0}</span>
+                      <span style={styles.countLabel}>{col.label}</span>
+                    </div>
+                  ))}
                 </div>
                 <div style={styles.itemActions}>
                   <button style={styles.iconBtn} onClick={() => startEdit(project)} title="Edit">
@@ -264,6 +281,35 @@ const styles = {
     fontWeight: 700,
     textTransform: 'uppercase',
     letterSpacing: '0.05em',
+  },
+  counts: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(4, minmax(68px, 1fr))',
+    gap: 6,
+    flexShrink: 0,
+    width: 320,
+  },
+  countChip: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '6px 8px',
+    borderRadius: 'var(--radius-sm)',
+    lineHeight: 1.1,
+  },
+  countNumber: {
+    fontFamily: 'var(--font-headline)',
+    fontSize: 'var(--fs-md)',
+    fontWeight: 700,
+  },
+  countLabel: {
+    fontSize: 'var(--fs-caption)',
+    fontWeight: 600,
+    textTransform: 'uppercase',
+    letterSpacing: '0.04em',
+    opacity: 0.85,
+    marginTop: 2,
   },
   itemActions: {
     display: 'flex',

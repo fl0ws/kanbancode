@@ -293,7 +293,19 @@ export function getStuckClaudeTasks() {
 // --- Projects ---
 
 export function getProjects() {
-  return all('SELECT * FROM projects WHERE COALESCE(archived, 0) = 0 ORDER BY created_at ASC');
+  return all(`
+    SELECT
+      p.*,
+      COALESCE(SUM(CASE WHEN t.column = 'not_started' AND t.archived = 0 THEN 1 ELSE 0 END), 0) AS count_not_started,
+      COALESCE(SUM(CASE WHEN t.column = 'claude'      AND t.archived = 0 THEN 1 ELSE 0 END), 0) AS count_claude,
+      COALESCE(SUM(CASE WHEN t.column = 'your_turn'   AND t.archived = 0 THEN 1 ELSE 0 END), 0) AS count_your_turn,
+      COALESCE(SUM(CASE WHEN t.column = 'done'        AND t.archived = 0 THEN 1 ELSE 0 END), 0) AS count_done
+    FROM projects p
+    LEFT JOIN tasks t ON t.project_id = p.id
+    WHERE COALESCE(p.archived, 0) = 0
+    GROUP BY p.id
+    ORDER BY p.name COLLATE NOCASE ASC
+  `);
 }
 
 export function getProject(id) {
@@ -336,7 +348,7 @@ export function getArchivedProjects(query, limit = 20, offset = 0) {
     const like = `%${q}%`;
     const rows = all(
       `SELECT * FROM projects WHERE archived = 1 AND (name LIKE ? OR working_dir LIKE ?)
-       ORDER BY updated_at DESC LIMIT ? OFFSET ?`,
+       ORDER BY name COLLATE NOCASE ASC LIMIT ? OFFSET ?`,
       [like, like, limit, offset]
     );
     const total = get(
@@ -346,7 +358,7 @@ export function getArchivedProjects(query, limit = 20, offset = 0) {
     return { rows, total: total?.c || 0 };
   }
   const rows = all(
-    'SELECT * FROM projects WHERE archived = 1 ORDER BY updated_at DESC LIMIT ? OFFSET ?',
+    'SELECT * FROM projects WHERE archived = 1 ORDER BY name COLLATE NOCASE ASC LIMIT ? OFFSET ?',
     [limit, offset]
   );
   const total = get('SELECT COUNT(*) as c FROM projects WHERE archived = 1');

@@ -35,7 +35,10 @@ export const useStore = create((set, get) => ({
   notificationSoundEnabled: localStorage.getItem('kanban_notification_sound') !== 'false',
 
   setProjects(projects) {
-    set({ projects });
+    const sorted = [...projects].sort((a, b) =>
+      (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' })
+    );
+    set({ projects: sorted });
   },
 
   setActiveProject(id) {
