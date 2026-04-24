@@ -312,19 +312,26 @@ export function getProject(id) {
   return get('SELECT * FROM projects WHERE id = ?', [id]);
 }
 
-export function createProject(id, name, workingDir) {
+export function createProject(id, name, workingDir, memoryDisabled = false) {
   run(
-    'INSERT INTO projects (id, name, working_dir) VALUES (?, ?, ?)',
-    [id, name, workingDir || null]
+    'INSERT INTO projects (id, name, working_dir, memory_disabled) VALUES (?, ?, ?, ?)',
+    [id, name, workingDir || null, memoryDisabled ? 1 : 0]
   );
   return getProject(id);
 }
 
-export function updateProject(id, name, workingDir) {
-  run(
-    'UPDATE projects SET name = ?, working_dir = ?, updated_at = datetime(\'now\') WHERE id = ?',
-    [name, workingDir || null, id]
-  );
+export function updateProject(id, name, workingDir, memoryDisabled) {
+  if (memoryDisabled === undefined) {
+    run(
+      'UPDATE projects SET name = ?, working_dir = ?, updated_at = datetime(\'now\') WHERE id = ?',
+      [name, workingDir || null, id]
+    );
+  } else {
+    run(
+      'UPDATE projects SET name = ?, working_dir = ?, memory_disabled = ?, updated_at = datetime(\'now\') WHERE id = ?',
+      [name, workingDir || null, memoryDisabled ? 1 : 0, id]
+    );
+  }
   return getProject(id);
 }
 

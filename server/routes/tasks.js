@@ -309,12 +309,12 @@ router.get('/api/projects/:id', (req, res) => {
 });
 
 router.post('/api/projects', (req, res) => {
-  const { name, working_dir } = req.body;
+  const { name, working_dir, memory_disabled } = req.body;
   if (!name || !name.trim()) {
     return res.status(400).json({ error: 'Name is required' });
   }
   const id = randomUUID();
-  const project = db.createProject(id, name.trim(), working_dir || null);
+  const project = db.createProject(id, name.trim(), working_dir || null, !!memory_disabled);
   broadcast('project:created', { project });
   logger.info('Project created', { projectId: id, name: name.trim() });
   res.status(201).json(project);
@@ -324,11 +324,12 @@ router.patch('/api/projects/:id', (req, res) => {
   const project = db.getProject(req.params.id);
   if (!project) return res.status(404).json({ error: 'Project not found' });
 
-  const { name, working_dir } = req.body;
+  const { name, working_dir, memory_disabled } = req.body;
   const updated = db.updateProject(
     req.params.id,
     name !== undefined ? name : project.name,
-    working_dir !== undefined ? working_dir : project.working_dir
+    working_dir !== undefined ? working_dir : project.working_dir,
+    memory_disabled !== undefined ? !!memory_disabled : undefined
   );
   broadcast('project:updated', { project: updated });
   res.json(updated);

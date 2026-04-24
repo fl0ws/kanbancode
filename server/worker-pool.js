@@ -264,10 +264,13 @@ export class WorkerPool {
     const activities = db.getActivities(task.id);
     const lastUserMsg = [...activities].reverse().find(a => a.author === 'user');
 
+    const project = db.getProject(task.project_id);
+    const memory = project?.memory_disabled ? '' : MEMORY_INSTRUCTION;
+
     if (task.conversation_id) {
       const prompt = (lastUserMsg
         ? lastUserMsg.message
-        : 'Continue where you left off.') + MEMORY_INSTRUCTION;
+        : 'Continue where you left off.') + memory;
 
       logger.info('Built resume prompt', { taskId: task.id, prompt });
       return prompt;
@@ -276,7 +279,7 @@ export class WorkerPool {
     if (lastUserMsg) {
       const prompt = `${lastUserMsg.message}
 
-(Context: this is a follow-up on task "${task.title}" in ${workingDir})${MEMORY_INSTRUCTION}`;
+(Context: this is a follow-up on task "${task.title}" in ${workingDir})${memory}`;
 
       logger.info('Built reply prompt', { taskId: task.id, prompt });
       return prompt;
@@ -289,7 +292,7 @@ export class WorkerPool {
 Working directory: ${workingDir}
 
 ## Instructions
-${systemPrompt}${MEMORY_INSTRUCTION}`;
+${systemPrompt}${memory}`;
 
     logger.info('Built initial prompt', { taskId: task.id, prompt });
     return prompt;

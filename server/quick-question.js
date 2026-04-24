@@ -74,7 +74,9 @@ export class QuickQuestionSession {
     const messages = [...qq.messages, { role: 'user', text: message, time: new Date().toISOString() }];
     db.updateQuickQuestion(this.questionId, messages, qq.conversation_id);
 
-    const prompt = message + MEMORY_SUFFIX;
+    const project = db.getProject(this.projectId);
+    const mem = project?.memory_disabled ? '' : MEMORY_SUFFIX;
+    const prompt = message + mem;
     this._spawn(prompt);
     return { ok: true, questionId: this.questionId };
   }
@@ -124,20 +126,27 @@ export class QuickQuestionSession {
   }
 
   _buildPrompt(question, isResume) {
+    const project = this.projectId ? db.getProject(this.projectId) : null;
+    const memDisabled = !!project?.memory_disabled;
+    const mem = memDisabled ? '' : MEMORY_SUFFIX;
+    const memNote = memDisabled
+      ? '- This is a READ-ONLY session. Do NOT edit, write, or create any files.'
+      : '- This is a READ-ONLY session. Do NOT edit, write, or create any files (except .claude-memory/ files for saving learnings).';
+
     if (isResume || this.sessionId) {
-      return question + MEMORY_SUFFIX;
+      return question + mem;
     }
 
     return `You are answering a quick question about this codebase. Your role is to explore, search, and read code to give accurate answers.
 
 ## Rules
-- This is a READ-ONLY session. Do NOT edit, write, or create any files (except .claude-memory/ files for saving learnings).
+${memNote}
 - Do NOT run commands that modify state (no git commits, no npm install, no file writes).
 - You CAN use Read, Glob, Grep, Bash (for read-only commands like git log, git diff), and Agent/Explore tools.
 - Be concise and direct in your answers.
 
 ## Question
-${question}${MEMORY_SUFFIX}`;
+${question}${mem}`;
   }
 
   _spawn(prompt) {

@@ -19,8 +19,10 @@ export default function ProjectsPage() {
   const [editing, setEditing] = useState(null);
   const [editName, setEditName] = useState('');
   const [editDir, setEditDir] = useState('');
+  const [editMemoryDisabled, setEditMemoryDisabled] = useState(false);
   const [newName, setNewName] = useState('');
   const [newDir, setNewDir] = useState('');
+  const [newMemoryDisabled, setNewMemoryDisabled] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [error, setError] = useState(null);
 
@@ -29,10 +31,15 @@ export default function ProjectsPage() {
     if (!newName.trim()) return;
     setError(null);
     try {
-      const project = await createProject({ name: newName.trim(), working_dir: newDir.trim() || undefined });
+      const project = await createProject({
+        name: newName.trim(),
+        working_dir: newDir.trim() || undefined,
+        memory_disabled: newMemoryDisabled,
+      });
       setProjects([...projects, project]);
       setNewName('');
       setNewDir('');
+      setNewMemoryDisabled(false);
       setShowCreate(false);
       setActiveProject(project.id);
     } catch (err) {
@@ -44,12 +51,17 @@ export default function ProjectsPage() {
     setEditing(project.id);
     setEditName(project.name);
     setEditDir(project.working_dir || '');
+    setEditMemoryDisabled(!!project.memory_disabled);
   }
 
   async function saveEdit(id) {
     setError(null);
     try {
-      const updated = await updateProject(id, { name: editName, working_dir: editDir.trim() || null });
+      const updated = await updateProject(id, {
+        name: editName,
+        working_dir: editDir.trim() || null,
+        memory_disabled: editMemoryDisabled,
+      });
       // Preserve count fields (the update endpoint doesn't return them); the
       // websocket will refresh shortly anyway, this just avoids a brief flash to 0.
       setProjects(projects.map(p => p.id === id ? { ...p, ...updated } : p));
@@ -109,8 +121,21 @@ export default function ProjectsPage() {
             autoFocus
           />
           <FolderPicker value={newDir} onChange={setNewDir} />
+          <label style={styles.memoryToggle}>
+            <input
+              type="checkbox"
+              checked={newMemoryDisabled}
+              onChange={e => setNewMemoryDisabled(e.target.checked)}
+            />
+            <div style={styles.memoryToggleText}>
+              <span style={styles.memoryToggleTitle}>Disable memory</span>
+              <span style={styles.memoryToggleDesc}>
+                Skip memory saving, dreaming, and <code>.claude-memory</code> consolidation for this project.
+              </span>
+            </div>
+          </label>
           <div style={styles.createActions}>
-            <button type="button" style={styles.btn} onClick={() => { setShowCreate(false); setNewName(''); setNewDir(''); }}>Cancel</button>
+            <button type="button" style={styles.btn} onClick={() => { setShowCreate(false); setNewName(''); setNewDir(''); setNewMemoryDisabled(false); }}>Cancel</button>
             <button type="submit" style={{ ...styles.btn, ...styles.btnPrimary }} disabled={!newName.trim()}>Create</button>
           </div>
         </form>
@@ -136,6 +161,19 @@ export default function ProjectsPage() {
                   autoFocus
                 />
                 <FolderPicker value={editDir} onChange={setEditDir} />
+                <label style={styles.memoryToggle}>
+                  <input
+                    type="checkbox"
+                    checked={editMemoryDisabled}
+                    onChange={e => setEditMemoryDisabled(e.target.checked)}
+                  />
+                  <div style={styles.memoryToggleText}>
+                    <span style={styles.memoryToggleTitle}>Disable memory</span>
+                    <span style={styles.memoryToggleDesc}>
+                      Skip memory saving, dreaming, and <code>.claude-memory</code> consolidation for this project.
+                    </span>
+                  </div>
+                </label>
                 <div style={styles.editActions}>
                   <button style={styles.btn} onClick={() => setEditing(null)}>Cancel</button>
                   <button style={{ ...styles.btn, ...styles.btnPrimary }} onClick={() => saveEdit(project.id)}>Save</button>
@@ -147,6 +185,12 @@ export default function ProjectsPage() {
                   <div style={styles.itemTitleRow}>
                     <span style={styles.itemName}>{project.name}</span>
                     {project.id === activeProjectId && <span style={styles.activeBadge}>Active</span>}
+                    {project.memory_disabled ? (
+                      <span style={styles.memoryOffBadge} title="Memory features disabled for this project">
+                        <span className="material-symbols-outlined" style={{ fontSize: 12 }}>memory_alt</span>
+                        Memory off
+                      </span>
+                    ) : null}
                   </div>
                   {project.working_dir && <span style={styles.itemDir}>{project.working_dir}</span>}
                 </div>
@@ -281,6 +325,43 @@ const styles = {
     fontWeight: 700,
     textTransform: 'uppercase',
     letterSpacing: '0.05em',
+  },
+  memoryOffBadge: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 3,
+    fontSize: 'var(--fs-sm)',
+    padding: '1px 7px',
+    borderRadius: 'var(--radius-sm)',
+    background: 'var(--bg-elevated)',
+    color: 'var(--text-muted)',
+    fontWeight: 600,
+    textTransform: 'uppercase',
+    letterSpacing: '0.05em',
+  },
+  memoryToggle: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: 10,
+    padding: '8px 10px',
+    borderRadius: 'var(--radius-sm)',
+    background: 'var(--bg-sidebar)',
+    cursor: 'pointer',
+  },
+  memoryToggleText: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 2,
+  },
+  memoryToggleTitle: {
+    fontSize: 'var(--fs-body)',
+    color: 'var(--text-primary)',
+    fontWeight: 600,
+  },
+  memoryToggleDesc: {
+    fontSize: 'var(--fs-small)',
+    color: 'var(--text-muted)',
+    lineHeight: 1.3,
   },
   counts: {
     display: 'grid',

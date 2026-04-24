@@ -28,8 +28,13 @@ export class DreamingEngine {
   onTaskCompleted(taskId) {
     const task = db.getTask(taskId);
     if (task?.project_id) {
-      this.memoryDirtyProjects.add(task.project_id);
-      logger.info('[DREAM] Project marked dirty', { projectId: task.project_id, taskId, allDirty: [...this.memoryDirtyProjects] });
+      const project = db.getProject(task.project_id);
+      if (project?.memory_disabled) {
+        logger.info('[DREAM] Skipping dirty mark — memory disabled for project', { projectId: task.project_id, taskId });
+      } else {
+        this.memoryDirtyProjects.add(task.project_id);
+        logger.info('[DREAM] Project marked dirty', { projectId: task.project_id, taskId, allDirty: [...this.memoryDirtyProjects] });
+      }
     } else {
       logger.info('[DREAM] onTaskCompleted called but no project_id', { taskId });
     }
@@ -80,6 +85,10 @@ export class DreamingEngine {
     for (const projectId of this.memoryDirtyProjects) {
       const project = db.getProject(projectId);
       if (!project?.working_dir) continue;
+      if (project.memory_disabled) {
+        logger.info('[DREAM] Skipping project — memory disabled', { projectId });
+        continue;
+      }
 
       let workingDir = project.working_dir;
       if (workingDir.startsWith('~')) {
